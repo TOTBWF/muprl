@@ -89,10 +89,10 @@ introLambda :: (MonadRule m) => Int -> Var -> Rule m
 introLambda k v (ctx :>> Equals (Lambda lbnd1) (Lambda lbnd2) (Pi pbnd)) = do
     (x, bx) <- unbind lbnd1
     (y, by) <- unbind lbnd2
-    ((_, unembed -> atyp), btyp) <- unbind pbnd
+    ((z, unembed -> atyp), btyp) <- unbind pbnd
     v' <- fresh v
     -- TODO: Do substitution for dependent types
-    let bgoal = (extendHyp v' atyp ctx :>> Equals (subst x (Var v') bx) (subst y (Var v') by) btyp)
+    let bgoal = (extendHyp v' atyp ctx :>> Equals (subst x (Var v') bx) (subst y (Var v') by) (subst z (Var v') btyp))
     let agoal = (ctx :>> Equals atyp atyp (Universe k))
     return [bgoal, agoal]
 introLambda _ _ t = ruleMismatch t
