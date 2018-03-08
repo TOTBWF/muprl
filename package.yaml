@@ -34,13 +34,16 @@ executables:
     - megaparsec >= 6 && < 7
     - mtl >= 2 && < 3
     - unbound-generics >= 0.3 && < 0.4
+    - haskeline >= 0.7 && < 0.8
     
     default-extensions:
     - TupleSections
     - LambdaCase
+    - MultiWayIf
     - FlexibleContexts
     - FlexibleInstances
     - MultiParamTypeClasses
+    - ViewPatterns
 
 tests:
   miniprl-test:

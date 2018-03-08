@@ -14,8 +14,6 @@ import GHC.Generics
 import Data.Typeable (Typeable)
 
 
-import MuPRL.Refinement
-
 {-
 TODO: Explain Canonical terms
 -}
@@ -26,6 +24,7 @@ data Term
     = Var Var                       -- A Variable 
     | Void                          -- Void Type
     | Unit                          -- Unit type
+    | Nil                           -- Inhabitant of the Unit Type
     | Universe Int                  -- A Type Universe 
     | App Term Term                 -- Function Application
     | Lambda (Bind Var Term)        -- Lambda Abstraction 

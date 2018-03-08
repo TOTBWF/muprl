@@ -10,6 +10,7 @@ import Data.List (foldl')
 
 import MuPRL.Parser.Lexer
 import MuPRL.Syntax
+import MuPRL.Rules
 
 variable :: Parser Var
 variable = string2Name <$> identifier
@@ -22,10 +23,11 @@ termExpr = P.choice
     [ Var <$> variable
     , reserved "void"  *> pure Void
     , reserved "unit" *> pure Unit
+    , reserved "nil" *> pure Nil
     , reserved "axiom" *> pure Axiom
     , Universe . fromIntegral <$> (reserved "universe" *> integer)
     , lambda <$> (slash *> variable) <*> (dot *> term)
-    , uncurry pi <$> (reserved "forall" *> typedef) <*> (dot *> term)
+    -- , uncurry pi <$> (reserved "forall" *> typedef) <*> (dot *> term)
     , parens term
     ]
     where 
@@ -38,11 +40,24 @@ appTerm = termExpr >>= \t ->
 operators :: [[P.Operator Parser Term]]
 operators = 
     [ [ P.InfixR (pi <$> (symbol "->" *> fresh wildcardName)) ]
+    , [ P.Prefix (uncurry pi <$> (parens typedef <* symbol "->")) ]
     , [ P.Postfix ((\y a x -> Equals x y a) <$> (equals *> term) <*> (reserved "in" *> term)) ]
     ]
 
 term :: Parser Term
 term = P.makeExprParser appTerm operators
+
+rule :: (MonadRule m) => Parser (Rule m)
+rule = reserved "by" *> P.choice 
+    [ reserved "hypothesis" *> pure hypothesis
+    , reserved "intro-void" *> pure introVoid
+    , reserved "intro-unit" *> pure introUnit
+    , reserved "intro-nil" *> pure introNil
+    , reserved "intro-universe" *> pure introUniverse
+    , introApp <$> (reserved "intro-app" *> reserved "using" *> term)
+    ]
+
+
 
 runParser :: Parser a -> String -> Either String a
 runParser p s = case runFreshM $ P.runParserT p "<stdin>" s of

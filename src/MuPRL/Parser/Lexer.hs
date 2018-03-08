@@ -76,7 +76,10 @@ reservedWords =
     [ "in"
     , "void"
     , "unit"
+    , "nil"
     , "universe"
     , "forall"
     , "axiom"
+    , "by"
+    , "using"
     ]
