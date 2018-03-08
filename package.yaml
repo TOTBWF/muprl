@@ -33,6 +33,7 @@ executables:
     - base >= 4.7 && < 5
     - megaparsec >= 6 && < 7
     - mtl >= 2 && < 3
+    - pretty >= 1.1 && < 1.2
     - unbound-generics >= 0.3 && < 0.4
     - haskeline >= 0.7 && < 0.8
     

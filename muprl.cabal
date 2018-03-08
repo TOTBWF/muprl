@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 44cd68ed70a96eb95448909c6ef6929440702af190de6afff1ffb8a806446cc4
+-- hash: 2ea0e99bd56262c8e1737ea35354d434cf9f30dbbad9a866de4a6fc561f39cce
 
 name:           muprl
 version:        0.1.0.0
@@ -29,6 +29,7 @@ executable muprl
   other-modules:
       MuPRL.Parser.Lexer
       MuPRL.Parser.Parser
+      MuPRL.PrettyPrint
       MuPRL.Rules
       MuPRL.Syntax
       Paths_muprl
@@ -41,6 +42,7 @@ executable muprl
     , haskeline >=0.7 && <0.8
     , megaparsec >=6 && <7
     , mtl >=2 && <3
+    , pretty >=1.1 && <1.2
     , unbound-generics >=0.3 && <0.4
   default-language: Haskell2010
 
