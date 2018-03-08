@@ -3,8 +3,10 @@ module MuPRL.PrettyPrint where
 import Text.PrettyPrint
 import Unbound.Generics.LocallyNameless
 import Data.Typeable (Typeable)
+import Control.Monad
 
 import MuPRL.Syntax
+import MuPRL.Rules
 
 class Pretty p where
     ppr :: p -> LFreshM Doc
@@ -44,6 +46,15 @@ instance Pretty Term where
         ptyp <- ppr typ
         return $ pt1 <+> text "=" <+> pt2 <+> text "in" <+> ptyp
     ppr (Axiom) = return $ text "axiom"
+
+instance Pretty Goal where
+    ppr (ctx :>> t) = do
+        pctx <- foldM (\p (x,t') -> do
+                px <- ppr x
+                pt' <- ppr t'
+                return $ px <> text ":" <> pt' <> text "," <+> p) (text "") ctx
+        pt <- ppr t
+        return $ pctx <> text "H >>" <+> pt
 
 pp :: (Pretty a) => a -> String
 pp = render . runLFreshM . ppr

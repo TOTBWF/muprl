@@ -28,9 +28,9 @@ hoistErr (Right val) = return val
 hoistErr (Left err) = liftIO $ die $ show err
 --   abort
 
-getRule :: Term -> Refinement (Rule Refinement)
-getRule t = do
-    liftIO $ putStrLn $ "H >> " ++ (pp t)
+getRule :: Goal -> Refinement (Rule Refinement)
+getRule g = do
+    liftIO $ putStrLn $ pp g
     str <- liftIO $ getLine
     hoistErr $ runParser rule str
 

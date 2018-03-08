@@ -28,11 +28,12 @@ data RuleError
 applyRule :: (MonadRule m) => Term -> Rule m -> m[Goal]
 applyRule t rule = join $ asks (rule . flip (:>>) t)
 
-refine :: (MonadRule m) => Term -> (Term -> m (Rule m)) -> m ()
+refine :: (MonadRule m) => Term -> (Goal -> m (Rule m)) -> m ()
 refine t getRule = do
-    rule <- getRule t
+    ctx <- ask
+    rule <- getRule (ctx :>> t)
     goals <- applyRule t rule
-    mapM_ (\(ctx :>> t') -> local (const ctx) (refine t' getRule)) goals
+    mapM_ (\(ctx' :>> t') -> local (const ctx') (refine t' getRule)) goals
 
 lookupHyp :: (MonadError RuleError m) => Var -> [(Var, Term)] -> m Term
 lookupHyp v as = case lookup v as of
