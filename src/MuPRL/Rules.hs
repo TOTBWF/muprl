@@ -11,12 +11,13 @@ import Unbound.Generics.LocallyNameless
 
 import MuPRL.Syntax
 
+-- A goal is just a proof state combined with a type we are trying to prove
 data Goal = [(Var, Term)] :>> Term
     deriving (Show)
 
 
 type MonadRule m = (Fresh m, MonadError RuleError m, MonadReader [(Var, Term)] m)
-type Rule m = Goal -> m[Goal]
+type Rule m = Goal -> m([Goal])
 
 data RuleError 
     = UnboundIdentifier Var

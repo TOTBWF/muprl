@@ -40,6 +40,8 @@ appTerm = termExpr >>= \t ->
 operators :: [[P.Operator Parser Term]]
 operators = 
     [ [ P.InfixR (pi <$> (symbol "->" *> fresh wildcardName)) ]
+    , [ P.InfixR (symbol "*" *> pure Prod) ]
+    , [ P.InfixR (symbol "+" *> pure Sum) ]
     , [ P.Prefix (uncurry pi <$> P.try (parens typedef <* symbol "->")) ]
     , [ P.Postfix ((\y a x -> Equals x y a) <$> (equals *> term) <*> (reserved "in" *> term)) ]
     ]

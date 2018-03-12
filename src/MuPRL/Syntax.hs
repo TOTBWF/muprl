@@ -29,6 +29,8 @@ data Term
     | App Term Term                 -- Function Application
     | Lambda (Bind Var Term)        -- Lambda Abstraction 
     | Pi (Bind (Var, Embed Term)  Term)            -- Dependent Function Type
+    | Prod Term Term                -- Product type a*b
+    | Sum Term Term                 -- Sum type  a + b
     | Equals Term Term Term         -- Equality (a = b in A)
     | Axiom                         -- The only inhabitant of the equality type
     deriving (Show, Generic, Typeable)
