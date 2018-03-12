@@ -16,31 +16,30 @@ import MuPRL.Syntax
 import MuPRL.PrettyPrint
 import MuPRL.Rules
 import MuPRL.Refinement
-import MuPRL.Error
+import MuPRL.Repl
 
-type Repl = HaskelineT IO 
+-- exec :: String -> Repl ()
+-- exec line = 
+--     case runParser term line of
+--         Left err -> printErr err
+--         Right t -> runRefinement $ refine t
 
-exec :: String -> Repl ()
-exec line = 
-    case runParser term line of
-        Left err -> printErr err
-        Right t -> liftIO $ runRefinement $ refine t
+-- cmd :: [(String, [String] -> Repl ())]
+-- cmd = []
 
-cmd :: [(String, [String] -> Repl ())]
-cmd = []
+-- defaultMatcher :: MonadIO m => [(String, CompletionFunc m)]
+-- defaultMatcher = []
 
-defaultMatcher :: MonadIO m => [(String, CompletionFunc m)]
-defaultMatcher = []
+-- comp :: (Monad m) => WordCompleter m
+-- comp n = do
+--     let cmds = ((':':) . fst) <$> cmd
+--     return $ filter (isPrefixOf n) cmds
 
-comp :: (Monad m) => WordCompleter m
-comp n = do
-    let cmds = ((':':) . fst) <$> cmd
-    return $ filter (isPrefixOf n) cmds
-
-completer :: CompleterStyle IO
-completer = Prefix (wordCompleter comp) defaultMatcher
+-- completer :: CompleterStyle IO
+-- completer = Prefix (wordCompleter comp) defaultMatcher
 
 
 
 main :: IO ()
-main = evalRepl "μPRL>" exec cmd completer (return ())
+main = return ()
+    --evalRepl "μPRL>" exec cmd completer (return ())
