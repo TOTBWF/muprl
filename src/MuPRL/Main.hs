@@ -8,6 +8,7 @@ import Control.Monad
 import Control.Monad.Trans
 import Unbound.Generics.LocallyNameless
 import System.Console.Repline
+import System.Console.ANSI
 import Data.List (isPrefixOf)
 
 import MuPRL.Parser.Parser
@@ -15,19 +16,14 @@ import MuPRL.Syntax
 import MuPRL.PrettyPrint
 import MuPRL.Rules
 import MuPRL.Refinement
+import MuPRL.Error
 
 type Repl = HaskelineT IO 
-
-hoistErr :: Pretty e => Either e a -> Repl a
-hoistErr (Right val) = return val
-hoistErr (Left err) = do
-  liftIO $ putStrLn $ pp err
-  abort
 
 exec :: String -> Repl ()
 exec line = 
     case runParser term line of
-        Left err -> liftIO $ putStrLn err
+        Left err -> printErr err
         Right t -> liftIO $ runRefinement $ refine t
 
 cmd :: [(String, [String] -> Repl ())]

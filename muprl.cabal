@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 757168a53ecdcc52741bbbcb6f1e5dae27d3b2dba99ff093df5bfa8dac92513b
+-- hash: f620092885e881a05a454bde80fc794a6cd13f560121435d2b246aba9abfd90d
 
 name:           muprl
 version:        0.1.0.0
@@ -28,6 +28,7 @@ executable muprl
   main-is: MuPRL/Main.hs
   other-modules:
       MuPRL.Environment
+      MuPRL.Error
       MuPRL.Parser.Lexer
       MuPRL.Parser.Parser
       MuPRL.PrettyPrint
@@ -40,7 +41,9 @@ executable muprl
   default-extensions: TupleSections LambdaCase MultiWayIf FlexibleContexts FlexibleInstances MultiParamTypeClasses ViewPatterns
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      ansi-terminal >=0.7 && <0.8
+    , base >=4.7 && <5
+    , haskeline >=0.7 && <0.8
     , megaparsec >=6 && <7
     , mtl >=2 && <3
     , pretty >=1.1 && <1.2

@@ -10,6 +10,7 @@ import MuPRL.Rules
 import MuPRL.Syntax
 import MuPRL.Environment
 import MuPRL.PrettyPrint
+import MuPRL.Error
 import MuPRL.Parser.Parser
 
 type Refinement = ReaderT Env (FreshMT (ExceptT RuleError IO))
@@ -42,8 +43,8 @@ getRule t = do
     str <- liftIO $ getLine
     case runParser rule str of
         (Right r) -> do
-            catchError (applyRule t r) (\err -> (liftIO $ print err) >> getRule t)
+            catchError (applyRule t r) (\err -> (showErr err) >> getRule t)
         (Left err) -> do
-            liftIO $ putStrLn $ show err
+            printErr err
             getRule t
     -- where hoistErr :: (Show e)
