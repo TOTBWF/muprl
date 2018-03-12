@@ -49,7 +49,7 @@ operators =
 term :: Parser Term
 term = P.makeExprParser appTerm operators
 
-rule :: (MonadRule m) => Parser (Rule m)
+rule :: (MonadRule m env) => Parser (Rule m)
 rule = reserved "by" *> P.choice 
     [ reserved "hypothesis" *> pure hypothesis
     , reserved "intro-void" *> pure introVoid

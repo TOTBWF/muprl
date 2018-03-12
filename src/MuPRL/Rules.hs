@@ -10,13 +10,14 @@ import Control.Monad
 import Unbound.Generics.LocallyNameless
 
 import MuPRL.Syntax
+import MuPRL.Environment
 
 -- A goal is just a proof state combined with a type we are trying to prove
 data Goal = [(Var, Term)] :>> Term
     deriving (Show)
 
 
-type MonadRule m = (Fresh m, MonadError RuleError m, MonadReader [(Var, Term)] m)
+type MonadRule m env = (Fresh m, MonadError RuleError m, MonadReader env m, HasProofState env)
 type Rule m = Goal -> m([Goal])
 
 data RuleError 
@@ -26,15 +27,8 @@ data RuleError
     | RuleMismatch Goal
     deriving (Show)
 
-applyRule :: (MonadRule m) => Term -> Rule m -> m[Goal]
-applyRule t rule = join $ asks (rule . flip (:>>) t)
-
-refine :: (MonadRule m) => Term -> (Goal -> m (Rule m)) -> m ()
-refine t getRule = do
-    ctx <- ask
-    rule <- getRule (ctx :>> t)
-    goals <- applyRule t rule
-    mapM_ (\(ctx' :>> t') -> local (const ctx') (refine t' getRule)) goals
+applyRule :: (MonadRule m env) => Term -> Rule m -> m[Goal]
+applyRule t rule = join $ asks (rule . flip (:>>) t . getProofState)
 
 lookupHyp :: (MonadError RuleError m) => Var -> [(Var, Term)] -> m Term
 lookupHyp v as = case lookup v as of
@@ -45,7 +39,7 @@ extendHyp :: Var -> Term -> [(Var, Term)] -> [(Var, Term)]
 extendHyp v t as = (v,t):as
 
 -- x:A, H |- x = x in A by hyp
-hypothesis :: (MonadRule m) => Rule m
+hypothesis :: (MonadRule m env) => Rule m
 hypothesis (ctx :>> Equals (Var x) (Var y) typ) = do
     xtyp <- lookupHyp x ctx
     ytyp <- lookupHyp y ctx
@@ -56,28 +50,28 @@ hypothesis (ctx :>> Equals (Var x) (Var y) typ) = do
 hypothesis t = ruleMismatch t
 
 -- H |- void in universe k by intro_void
-introVoid :: (MonadRule m) => Rule m
+introVoid :: (MonadRule m env) => Rule m
 introVoid (_ :>> Equals Void Void (Universe _)) = axiomatic
 introVoid t = ruleMismatch t
 
 -- H |- unit in universe k by intro_unit
-introUnit :: (MonadRule m) => Rule m
+introUnit :: (MonadRule m env) => Rule m
 introUnit (_ :>> Equals Unit Unit (Universe _))  = axiomatic
 introUnit t = ruleMismatch t
 
-introNil :: (MonadRule m) => Rule m
+introNil :: (MonadRule m env) => Rule m
 introNil (_ :>> Equals Nil Nil Unit) = axiomatic
 introNil  t = ruleMismatch t
 
 -- | universe j = universe i in universe k by intro_universe (max (i,j) < k)
-introUniverse :: (MonadRule m) => Rule m
+introUniverse :: (MonadRule m env) => Rule m
 introUniverse (_ :>> Equals (Universe i) (Universe j) (Universe k)) = 
         if (max i j < k)
             then axiomatic
             else throwError $ UniverseMismatch (max i j) k
 introUniverse t = ruleMismatch t
 
-introApp :: (MonadRule m) => Term -> Rule m
+introApp :: (MonadRule m env) => Term -> Rule m
 introApp u@(Pi bnd) (ctx :>> Equals (App f1 a1) (App f2 a2) typ) = do
     ((x, unembed -> atyp), typ') <- unbind bnd
     -- TODO: Unification on `typ` and `typ'`
@@ -86,7 +80,7 @@ introApp u@(Pi bnd) (ctx :>> Equals (App f1 a1) (App f2 a2) typ) = do
     return [agoal, fgoal]
 introApp _ t = ruleMismatch t
 
-introLambda :: (MonadRule m) => Int -> Var -> Rule m
+introLambda :: (MonadRule m env) => Int -> Var -> Rule m
 introLambda k v (ctx :>> Equals (Lambda lbnd1) (Lambda lbnd2) (Pi pbnd)) = do
     (x, bx) <- unbind lbnd1
     (y, by) <- unbind lbnd2

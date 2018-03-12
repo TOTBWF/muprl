@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2ea0e99bd56262c8e1737ea35354d434cf9f30dbbad9a866de4a6fc561f39cce
+-- hash: 757168a53ecdcc52741bbbcb6f1e5dae27d3b2dba99ff093df5bfa8dac92513b
 
 name:           muprl
 version:        0.1.0.0
@@ -27,9 +27,11 @@ source-repository head
 executable muprl
   main-is: MuPRL/Main.hs
   other-modules:
+      MuPRL.Environment
       MuPRL.Parser.Lexer
       MuPRL.Parser.Parser
       MuPRL.PrettyPrint
+      MuPRL.Refinement
       MuPRL.Rules
       MuPRL.Syntax
       Paths_muprl
@@ -39,21 +41,9 @@ executable muprl
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
-    , haskeline >=0.7 && <0.8
     , megaparsec >=6 && <7
     , mtl >=2 && <3
     , pretty >=1.1 && <1.2
+    , repline >=0.1 && <0.2
     , unbound-generics >=0.3 && <0.4
-  default-language: Haskell2010
-
-test-suite miniprl-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_muprl
-  hs-source-dirs:
-      test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      miniprl
   default-language: Haskell2010

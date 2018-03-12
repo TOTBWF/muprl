@@ -7,36 +7,44 @@ import Control.Monad.Except
 import Control.Monad
 import Control.Monad.Trans
 import Unbound.Generics.LocallyNameless
-import System.Console.Haskeline
-import System.Exit
+import System.Console.Repline
+import Data.List (isPrefixOf)
+
 import MuPRL.Parser.Parser
 import MuPRL.Syntax
 import MuPRL.PrettyPrint
 import MuPRL.Rules
+import MuPRL.Refinement
 
-type Refinement = ReaderT [(Var, Term)] (FreshMT (ExceptT RuleError IO))
+type Repl = HaskelineT IO 
 
-runRefinement :: Refinement a -> IO a
-runRefinement r = do
-    r <- runExceptT $ runFreshMT $ runReaderT r []
-    case r of
-        Right x -> return x
-        Left err -> die $ show err
-
-hoistErr :: Show e => Either e a -> Refinement a
+hoistErr :: Pretty e => Either e a -> Repl a
 hoistErr (Right val) = return val
-hoistErr (Left err) = liftIO $ die $ show err
---   abort
+hoistErr (Left err) = do
+  liftIO $ putStrLn $ pp err
+  abort
 
-getRule :: Goal -> Refinement (Rule Refinement)
-getRule g = do
-    liftIO $ putStrLn $ pp g
-    str <- liftIO $ getLine
-    hoistErr $ runParser rule str
+exec :: String -> Repl ()
+exec line = 
+    case runParser term line of
+        Left err -> liftIO $ putStrLn err
+        Right t -> liftIO $ runRefinement $ refine t
+
+cmd :: [(String, [String] -> Repl ())]
+cmd = []
+
+defaultMatcher :: MonadIO m => [(String, CompletionFunc m)]
+defaultMatcher = []
+
+comp :: (Monad m) => WordCompleter m
+comp n = do
+    let cmds = ((':':) . fst) <$> cmd
+    return $ filter (isPrefixOf n) cmds
+
+completer :: CompleterStyle IO
+completer = Prefix (wordCompleter comp) defaultMatcher
+
+
 
 main :: IO ()
-main = runRefinement $ do
-    str <- liftIO $ getLine
-    t <- hoistErr $ runParser term str
-    refine t getRule
-
+main = evalRepl "μPRL>" exec cmd completer (return ())

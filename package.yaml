@@ -35,7 +35,7 @@ executables:
     - mtl >= 2 && < 3
     - pretty >= 1.1 && < 1.2
     - unbound-generics >= 0.3 && < 0.4
-    - haskeline >= 0.7 && < 0.8
+    - repline >= 0.1 && < 0.2
     
     default-extensions:
     - TupleSections
@@ -46,13 +46,13 @@ executables:
     - MultiParamTypeClasses
     - ViewPatterns
 
-tests:
-  miniprl-test:
-    main:                Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - miniprl
+# tests:
+#   miniprl-test:
+#     main:                Spec.hs
+#     source-dirs:         test
+#     ghc-options:
+#     - -threaded
+#     - -rtsopts
+#     - -with-rtsopts=-N
+#     dependencies:
+#     - muprl
