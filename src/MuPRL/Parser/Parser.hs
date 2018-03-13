@@ -27,7 +27,7 @@ termExpr = P.choice
     , reserved "axiom" *> pure Axiom
     , Universe . fromIntegral <$> (reserved "universe" *> integer)
     , lambda <$> (slash *> variable) <*> (dot *> term)
-    -- , uncurry pi <$> (reserved "forall" *> typedef) <*> (dot *> term)
+    , P.try $ uncurry pi <$> (parens typedef) <*> (symbol "->" *> term)
     , parens term
     ]
     where 
@@ -42,8 +42,8 @@ operators =
     [ [ P.InfixR (pi <$> (symbol "->" *> fresh wildcardName)) ]
     , [ P.InfixR (symbol "*" *> pure Prod) ]
     , [ P.InfixR (symbol "+" *> pure Sum) ]
-    , [ P.Prefix (uncurry pi <$> P.try (parens typedef <* symbol "->")) ]
-    , [ P.Postfix ((\y a x -> Equals x y a) <$> (equals *> term) <*> (reserved "in" *> term)) ]
+    , [ P.Postfix ((\y a x -> Equals x y a) <$> (equals *> term) <*> (reserved "in" *> term)) 
+      , P.Postfix ((\a x -> eqRefl x a) <$> (reserved "in" *> term))]
     ]
 
 term :: Parser Term

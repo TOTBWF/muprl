@@ -49,6 +49,9 @@ lambda x body = Lambda (bind x body)
 pi :: Var -> Term -> Term -> Term
 pi x typ body = Pi (bind (x, embed typ) body)
 
+eqRefl :: Term -> Term -> Term
+eqRefl tm typ = Equals tm tm typ
+
 wildcardName :: Var
 wildcardName = string2Name "_"
 
