@@ -43,7 +43,7 @@ operators =
     , [ P.InfixR (symbol "*" *> pure Prod) ]
     , [ P.InfixR (symbol "+" *> pure Sum) ]
     , [ P.Postfix ((\y a x -> Equals x y a) <$> (equals *> term) <*> (reserved "in" *> term)) 
-      , P.Postfix ((\a x -> eqRefl x a) <$> (reserved "in" *> term))]
+      , P.Postfix ((flip eqRefl) <$> (reserved "in" *> term))]
     ]
 
 term :: Parser Term

@@ -18,7 +18,8 @@ data Goal = [(Var, Term)] :>> Term
 
 
 type MonadRule m env = (Fresh m, MonadError RuleError m, MonadReader env m, HasProofState env)
-type Rule m = Goal -> m([Goal])
+type Extract = [Term] -> Term
+type Rule m = Goal -> m([Goal], Extract)
 
 data RuleError 
     = UnboundIdentifier Var
@@ -27,7 +28,7 @@ data RuleError
     | RuleMismatch Goal
     deriving (Show)
 
-applyRule :: (MonadRule m env) => Term -> Rule m -> m[Goal]
+applyRule :: (MonadRule m env) => Term -> Rule m -> m([Goal], Extract)
 applyRule t rule = join $ asks (rule . flip (:>>) t . getProofState)
 
 lookupHyp :: (MonadError RuleError m) => Var -> [(Var, Term)] -> m Term
@@ -77,7 +78,7 @@ introApp u@(Pi bnd) (ctx :>> Equals (App f1 a1) (App f2 a2) typ) = do
     -- TODO: Unification on `typ` and `typ'`
     let fgoal = (ctx :>> Equals f1 f2 u)
     let agoal = (ctx :>> Equals a1 a2 atyp)
-    return [agoal, fgoal]
+    return ([agoal, fgoal], const Axiom)
 introApp _ t = ruleMismatch t
 
 introLambda :: (MonadRule m env) => Int -> Var -> Rule m
@@ -86,15 +87,14 @@ introLambda k v (ctx :>> Equals (Lambda lbnd1) (Lambda lbnd2) (Pi pbnd)) = do
     (y, by) <- unbind lbnd2
     ((z, unembed -> atyp), btyp) <- unbind pbnd
     v' <- fresh v
-    -- TODO: Do substitution for dependent types
     let bgoal = (extendHyp v' atyp ctx :>> Equals (subst x (Var v') bx) (subst y (Var v') by) (subst z (Var v') btyp))
     let agoal = (ctx :>> Equals atyp atyp (Universe k))
-    return [bgoal, agoal]
+    return ([bgoal, agoal], const Axiom)
 introLambda _ _ t = ruleMismatch t
 
 -- Some helper functions
-axiomatic :: (Monad m) => m [a]
-axiomatic = return []
+axiomatic :: (Monad m) => m ([Goal], Extract)
+axiomatic = return ([], const Axiom)
 
-ruleMismatch :: (MonadError RuleError m) => Goal -> m [a]
+ruleMismatch :: (MonadError RuleError m) => Goal -> m ([Goal], Extract)
 ruleMismatch = throwError . RuleMismatch 

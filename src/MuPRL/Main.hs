@@ -24,7 +24,10 @@ loop = do
     case input of
         Just i -> case runParser term i of
             Left err -> printErr err >> loop
-            Right t -> (runRefinement $ refine t) >> loop
+            Right t -> do
+                extract <- (runRefinement $ refine t)
+                outputStrLn $ pp extract
+                loop
         Nothing -> outputStrLn "Goodbye"
 
 

@@ -21,13 +21,15 @@ runRefinement r = do
         Right x -> return x
         Left err -> showErr err >> abort
 
-refine :: Term -> Refinement ()
+refine :: Term -> Refinement Term
 refine t = do
-    goals <- getRule t
-    mapM_ (\(ctx' :>> t') -> local (\env -> env { envLevel=(1 + envLevel env), envProofState=ctx' } ) (refine t')) goals
+    (goals, ctr) <- getRule t
+    extracts <- mapM (\(ctx' :>> t') -> local (\env -> env { envLevel=(1 + envLevel env), envProofState=ctx' } ) (refine t')) goals
+    return $ ctr extracts
+    -- mapM_ 
 
 
-getRule :: Term -> Refinement [Goal]
+getRule :: Term -> Refinement ([Goal], Extract)
 getRule t = do
     str <- getRefinementLine t
     case runParser rule str of
