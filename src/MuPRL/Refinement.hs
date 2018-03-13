@@ -29,13 +29,18 @@ refine t = do
 
 getRule :: Term -> Refinement [Goal]
 getRule t = do
-    env <- ask
-    let g = (envProofState env :>> t)
-    let l = (envLevel env)
-    str <- lift $ lift $ lift $ getInputLine $ indent l $ pp g
+    str <- getRefinementLine t
     case runParser rule str of
         (Right r) -> do
             catchError (applyRule t r) (\err -> (showErr err) >> getRule t)
         (Left err) -> do
             printErr err
             getRule t
+
+getRefinementLine :: Term -> Refinement String
+getRefinementLine t = do
+    env <- ask
+    l <- getInputLine $ indent (envLevel env) $ pp (envProofState env :>> t) ++ " "
+    case l of
+        Just str -> return str
+        Nothing -> abort

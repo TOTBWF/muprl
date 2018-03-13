@@ -7,7 +7,6 @@ import Control.Monad.Except
 import Control.Monad
 import Control.Monad.Trans
 import Unbound.Generics.LocallyNameless
-import System.Console.Repline
 import System.Console.ANSI
 import Data.List (isPrefixOf)
 
@@ -18,28 +17,18 @@ import MuPRL.Rules
 import MuPRL.Refinement
 import MuPRL.Repl
 
--- exec :: String -> Repl ()
--- exec line = 
---     case runParser term line of
---         Left err -> printErr err
---         Right t -> runRefinement $ refine t
 
--- cmd :: [(String, [String] -> Repl ())]
--- cmd = []
-
--- defaultMatcher :: MonadIO m => [(String, CompletionFunc m)]
--- defaultMatcher = []
-
--- comp :: (Monad m) => WordCompleter m
--- comp n = do
---     let cmds = ((':':) . fst) <$> cmd
---     return $ filter (isPrefixOf n) cmds
-
--- completer :: CompleterStyle IO
--- completer = Prefix (wordCompleter comp) defaultMatcher
-
+loop :: Repl ()
+loop = do
+    input <- getInputLine "μPRL>"
+    case input of
+        Just i -> case runParser term i of
+            Left err -> printErr err >> loop
+            Right t -> (runRefinement $ refine t) >> loop
+        Nothing -> outputStrLn "Goodbye"
 
 
 main :: IO ()
-main = return ()
+main = runReplT loop
+
     --evalRepl "μPRL>" exec cmd completer (return ())
