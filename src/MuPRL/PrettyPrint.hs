@@ -20,9 +20,9 @@ instance Typeable a => Pretty (Name a) where
 
 instance Pretty Term where
     ppr (Var x) = ppr x
-    ppr (Void) = return $ text "void"
-    ppr (Unit) = return $ text "unit"
-    ppr (Nil) = return $ text "nil"
+    ppr Void = return $ text "void"
+    ppr Unit = return $ text "unit"
+    ppr Nil = return $ text "nil"
     ppr (Universe k) = do
         pk <- ppr k
         return $ text "universe" <+> pk
@@ -46,7 +46,7 @@ instance Pretty Term where
         pt2 <- ppr t2
         ptyp <- ppr typ
         return $ pt1 <+> text "=" <+> pt2 <+> text "in" <+> ptyp
-    ppr (Axiom) = return $ text "axiom"
+    ppr Axiom = return $ text "axiom"
 
 
 instance Pretty Judgement where

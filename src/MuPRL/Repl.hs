@@ -24,18 +24,18 @@ runReplT m = H.runInputT H.defaultSettings (H.withInterrupt (unRepl m))
 instance MonadException m => MonadException (ExceptT e m) where
     controlIO f = ExceptT $ controlIO $ \(RunIO run) -> let
         run' = RunIO (fmap ExceptT . run . runExceptT)
-        in fmap runExceptT $ f run'
+        in runExceptT <$> f run'
 
 instance MonadException m => MonadException (FreshMT m) where
     controlIO f = FreshMT $ controlIO $ \(RunIO run) -> let
         run' = RunIO (fmap FreshMT . run . unFreshMT)
-        in fmap unFreshMT $ f run'
+        in unFreshMT <$> f run'
 
 
 instance MonadException m => MonadException (StateT s m) where
     controlIO f = StateT $ \s -> controlIO $ \(RunIO run) -> let
                     run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
-                    in fmap (flip runStateT s) $ f run'
+                    in (`runStateT` s) <$> f run'
 
 class MonadException m => MonadRepl m where
     getInputLine :: String -> m (Maybe String)

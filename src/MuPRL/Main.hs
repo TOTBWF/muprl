@@ -27,7 +27,7 @@ loop = do
         Just i -> case runParser term i of
             Left err -> printErr err >> loop
             Right t -> do
-                extract <- (runRefinement $ refine (Seq.empty :>> t))
+                extract <- runRefinement $ refine (Seq.empty :>> t)
                 outputStrLn $ pp extract
                 loop
         Nothing -> outputStrLn "Goodbye"

@@ -32,7 +32,7 @@ intro = Rule $ \case
     -- Equality rules
     (_ :>> Equals Void Void (Universe _)) -> axiomatic
     (_ :>> Equals Unit Unit (Universe _)) -> axiomatic
-    (_ :>> Equals Nil Nil (Universe _)) -> axiomatic
+    (_ :>> Equals Nil Nil Unit) -> axiomatic
     (h :>> Equals (Lambda lbnd1) (Lambda lbnd2) (Pi pbnd)) -> do
         (x, bx) <- unbind lbnd1
         (y, by) <- unbind lbnd2
@@ -63,7 +63,6 @@ hypothesis = Rule $ \case
             | otherwise -> axiomatic
     jdg -> ruleMismatch jdg
         
--- hypothesis t = ruleMismatch t
 inferUniverse :: (MonadRule m) => Term -> m Int
 inferUniverse (Universe k) = return $ k + 1
 inferUniverse (Pi bnd) = do
@@ -71,89 +70,16 @@ inferUniverse (Pi bnd) = do
     max <$> inferUniverse atyp <*> inferUniverse btyp
 inferUniverse (Equals _ _ a) = inferUniverse a
 inferUniverse _ = return 0
--- introLambda :: (MonadRule m) => Int -> Var -> Rule m
--- introLambda k v = Rule $ \case
---     (Equals (Lambda lbnd1) (Lambda lbnd2) (Pi pbnd)) -> do
---         (x, bx) <- unbind lbnd1
---         (y, by) <- unbind lbnd2
---         ((z, unembed -> atyp), btyp) <- unbind pbnd
---         v' <- fresh v
---         (aGoal, aHole) <- goal (Equals atyp atyp (Universe k))
---         (bGoal, bHole) <- goal (Equals (subst x (Var v') bx) (subst y (Var v') by) (subst z (Var v') btyp))
---         return (Seq.empty :>> Axiom)
 
--- -- A goal is just a proof state combined with a type we are trying to prove
--- data Goal = [(Var, Term)] :>> Term
---     deriving (Show)
+introApp :: (MonadRule m) => Term -> Rule m
+introApp u@(Pi bnd) = Rule $ \case 
+    (ctx :>> Equals (App f1 a1) (App f2 a2) typ) -> do
+        ((x, unembed -> atyp), typ') <- unbind bnd
+        -- TODO: Unification on `typ` and `typ'`
+        (fgoal, _) <- goal (ctx :>> Equals f1 f2 u)
+        (agoal, _) <- goal (ctx :>> Equals a1 a2 atyp)
+        return ((Seq.empty :|> agoal :|> fgoal) :#> Axiom)
+    jdg -> ruleMismatch jdg
 
-
--- type MonadRule m env = (Fresh m, MonadError RuleError m, MonadReader env m, HasProofState env)
--- type Extract = [Term] -> Term
--- type Rule m = Goal -> m([Goal], Extract)
-
--- data RuleError 
---     = UnboundIdentifier Var
---     | UniverseMismatch Int Int
---     | TypeMismatch Term Term
---     | RuleMismatch Goal
---     deriving (Show)
-
--- applyRule :: (MonadRule m env) => Term -> Rule m -> m([Goal], Extract)
--- applyRule t rule = join $ asks (rule . flip (:>>) t . getProofState)
-
--- lookupHyp :: (MonadError RuleError m) => Var -> [(Var, Term)] -> m Term
--- lookupHyp v as = case lookup v as of
---     Just x -> return x
---     Nothing -> throwError $ UnboundIdentifier v
-
--- extendHyp :: Var -> Term -> [(Var, Term)] -> [(Var, Term)]
--- extendHyp v t as = (v,t):as
-
--- -- x:A, H |- x = x in A by hyp
--- hypothesis :: (MonadRule m env) => Rule m
--- hypothesis (ctx :>> Equals (Var x) (Var y) typ) = do
---     xtyp <- lookupHyp x ctx
---     ytyp <- lookupHyp y ctx
---     -- TODO: Equality over types
---     if  | not (aeq xtyp ytyp) -> throwError $ TypeMismatch xtyp ytyp
---         | not (aeq xtyp typ) -> throwError $ TypeMismatch xtyp typ
---         | otherwise -> axiomatic
--- hypothesis t = ruleMismatch t
-
--- -- | universe j = universe i in universe k by intro_universe (max (i,j) < k)
--- introUniverse :: (MonadRule m env) => Rule m
--- introUniverse (_ :>> Equals (Universe i) (Universe j) (Universe k)) = 
---         if (max i j < k)
---             then axiomatic
---             else throwError $ UniverseMismatch (max i j) k
--- introUniverse t = ruleMismatch t
-
--- introApp :: (MonadRule m env) => Term -> Rule m
--- introApp u@(Pi bnd) (ctx :>> Equals (App f1 a1) (App f2 a2) typ) = do
---     ((x, unembed -> atyp), typ') <- unbind bnd
---     -- TODO: Unification on `typ` and `typ'`
---     let fgoal = (ctx :>> Equals f1 f2 u)
---     let agoal = (ctx :>> Equals a1 a2 atyp)
---     return ([agoal, fgoal], const Axiom)
--- introApp _ t = ruleMismatch t
-
-
-
-
--- introLambda :: (MonadRule m env) => Int -> Var -> Rule m
--- introLambda k v (ctx :>> Equals (Lambda lbnd1) (Lambda lbnd2) (Pi pbnd)) = do
---     (x, bx) <- unbind lbnd1
---     (y, by) <- unbind lbnd2
---     ((z, unembed -> atyp), btyp) <- unbind pbnd
---     v' <- fresh v
---     let bgoal =extendHyp v' atyp ctx :>> Equals (subst x (Var v') bx) (subst y (Var v') by) (subst z (Var v') btyp)
---     let agoal = (ctx :>> Equals atyp atyp (Universe k))
---     return ([bgoal, agoal], const Axiom)
--- introLambda _ _ t = ruleMismatch t
-
--- -- Some helper functions
--- axiomatic :: (Monad m) => m ([Goal], Extract)
--- axiomatic = return ([], const Axiom)
-
-ruleMismatch :: (MonadError RuleError m) => Judgement -> m (ProofState)
+ruleMismatch :: (MonadError RuleError m) => Judgement -> m ProofState
 ruleMismatch = throwError . RuleMismatch 

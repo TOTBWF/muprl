@@ -36,7 +36,7 @@ refine t = do
         solve :: Seq (Var, Judgement) -> Refinement (Seq (Var, Term))
         solve Empty = return Empty
         solve ((x, jdg) :<| xs) = do
-            t <- refine jdg
+            t <- local (\env -> env { envLevel = envLevel env + 1 }) (refine jdg)
             ts <- solve $ fmap (second (substJudgement x t)) xs
             return $ (x,t) :<| ts
 

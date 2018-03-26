@@ -8,7 +8,7 @@ import Data.Bifunctor
 import Control.Monad.Except
 import qualified Data.Sequence as Seq
 import Data.Sequence.Internal
-import Data.Sequence (Seq(..), ViewR(..) , ViewL(..))
+import Data.Sequence (Seq(..))
 
 {-
 A proof state is a telescope of judgements that bind metavars in the rest of the telescope
