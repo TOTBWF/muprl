@@ -3,7 +3,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TypeFamilies #-}
- 
+
 module MuPRL.Syntax where
 
 import Control.Monad.Reader
@@ -29,8 +29,8 @@ data Term
     | App Term Term                 -- Function Application
     | Lambda (Bind Var Term)        -- Lambda Abstraction 
     | Pi (Bind (Var, Embed Term)  Term)            -- Dependent Function Type
-    | Prod Term Term                -- Product type a*b
-    | Sum Term Term                 -- Sum type  a + b
+    -- | Prod Term Term                -- Product type a*b
+    -- | Sum Term Term                 -- Sum type  a + b
     | Equals Term Term Term         -- Equality (a = b in A)
     | Axiom                         -- The only inhabitant of the equality type
     deriving (Show, Generic, Typeable)
@@ -43,7 +43,7 @@ instance Subst Term Term where
 
 -- Smart Contstructors
 
-lambda :: Var -> Term -> Term    
+lambda :: Var -> Term -> Term
 lambda x body = Lambda (bind x body)
 
 pi :: Var -> Term -> Term -> Term
@@ -54,6 +54,9 @@ eqRefl tm typ = Equals tm tm typ
 
 wildcardName :: Var
 wildcardName = string2Name "_"
+
+metavar :: Var
+metavar = string2Name ""
 
 -- Some utility functions we need to determine if a term is closed
 freeVars :: Term -> [Var]

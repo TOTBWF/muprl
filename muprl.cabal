@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 64eeef8da291954109df9756f7ba58a4f0ed7fc29266306ce8e8edd928448a13
+-- hash: 13d4e9f6034131ac68d936372d92403faa09a1ab5ec8e03546ec7058be186c3b
 
 name:           muprl
 version:        0.1.0.0
@@ -28,6 +28,7 @@ executable muprl
   main-is: MuPRL/Main.hs
   other-modules:
       MuPRL.Environment
+      MuPRL.LCF
       MuPRL.Parser.Lexer
       MuPRL.Parser.Parser
       MuPRL.PrettyPrint
@@ -43,6 +44,7 @@ executable muprl
   build-depends:
       ansi-terminal >=0.7 && <0.8
     , base >=4.7 && <5
+    , containers >=0.5 && <0.6
     , haskeline >=0.7 && <0.8
     , megaparsec >=6 && <7
     , mtl >=2 && <3

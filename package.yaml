@@ -37,6 +37,7 @@ executables:
     - unbound-generics >= 0.3 && < 0.4
     - haskeline >= 0.7 && < 0.8
     - ansi-terminal >= 0.7 && < 0.8
+    - containers >= 0.5 && < 0.6
     
     default-extensions:
     - TupleSections

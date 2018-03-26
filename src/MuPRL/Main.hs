@@ -9,10 +9,12 @@ import Control.Monad.Trans
 import Unbound.Generics.LocallyNameless
 import System.Console.ANSI
 import Data.List (isPrefixOf)
+import qualified Data.Sequence as Seq
 
 import MuPRL.Parser.Parser
 import MuPRL.Syntax
 import MuPRL.PrettyPrint
+import MuPRL.LCF
 import MuPRL.Rules
 import MuPRL.Refinement
 import MuPRL.Repl
@@ -25,7 +27,7 @@ loop = do
         Just i -> case runParser term i of
             Left err -> printErr err >> loop
             Right t -> do
-                extract <- (runRefinement $ refine t)
+                extract <- (runRefinement $ refine (Seq.empty :>> t))
                 outputStrLn $ pp extract
                 loop
         Nothing -> outputStrLn "Goodbye"

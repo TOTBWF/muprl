@@ -6,6 +6,7 @@ import Data.Typeable (Typeable)
 import Control.Monad
 
 import MuPRL.Syntax
+import MuPRL.LCF
 import MuPRL.Rules
 
 class Pretty p where
@@ -47,7 +48,8 @@ instance Pretty Term where
         return $ pt1 <+> text "=" <+> pt2 <+> text "in" <+> ptyp
     ppr (Axiom) = return $ text "axiom"
 
-instance Pretty Goal where
+
+instance Pretty Judgement where
     ppr (ctx :>> t) = do
         pctx <- foldM (\p (x,t') -> do
                 px <- ppr x

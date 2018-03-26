@@ -5,12 +5,16 @@ import Control.Monad.Except
 import Control.Monad
 import Unbound.Generics.LocallyNameless
 
+import MuPRL.LCF
 import MuPRL.Rules
 import MuPRL.Syntax
 import MuPRL.Environment
 import MuPRL.PrettyPrint
 import MuPRL.Repl
-import MuPRL.Parser.Parser
+import qualified Data.Sequence as Seq
+import Data.Sequence (Seq(..))
+import Data.Bifunctor
+import qualified MuPRL.Parser.Parser as P
 
 type Refinement = ReaderT Env (FreshMT (ExceptT RuleError Repl))
 
@@ -21,28 +25,35 @@ runRefinement r = do
         Right x -> return x
         Left err -> showErr err >> abort
 
-refine :: Term -> Refinement Term
+refine :: Judgement -> Refinement Term
 refine t = do
-    (goals, ctr) <- getRule t
-    extracts <- mapM (\(ctx' :>> t') -> local (\env -> env { envLevel=(1 + envLevel env), envProofState=ctx' } ) (refine t')) goals
-    return $ ctr extracts
-    -- mapM_ 
+    (goals :#> e) <- getRule t
+    -- For each one of the subgoals, we have to solve it, then fill in the hole for the rest of the telescope
+    metavars <- solve goals
+    -- Use our computed metavariables to fill in all of the free vars in the extract term
+    return $ foldl (\e (v,t) -> subst v t e) e metavars 
+    where
+        solve :: Seq (Var, Judgement) -> Refinement (Seq (Var, Term))
+        solve Empty = return Empty
+        solve ((x, jdg) :<| xs) = do
+            t <- refine jdg
+            ts <- solve $ fmap (second (substJudgement x t)) xs
+            return $ (x,t) :<| ts
 
 
-getRule :: Term -> Refinement ([Goal], Extract)
+getRule :: Judgement -> Refinement ProofState
 getRule t = do
     str <- getRefinementLine t
-    case runParser rule str of
-        (Right r) -> do
-            catchError (applyRule t r) (\err -> (showErr err) >> getRule t)
+    case P.runParser P.rule str of
+        (Right r) -> catchError ((unRule r) t) (\err -> showErr err >> getRule t)
         (Left err) -> do
             printErr err
             getRule t
 
-getRefinementLine :: Term -> Refinement String
+getRefinementLine :: Judgement -> Refinement String
 getRefinementLine t = do
     env <- ask
-    l <- getInputLine $ indent (envLevel env) $ pp (envProofState env :>> t) ++ " "
+    l <- getInputLine $ indent (envLevel env) $ pp t ++ " "
     case l of
         Just str -> return str
         Nothing -> abort
