@@ -33,7 +33,10 @@ executables:
     - base >= 4.7 && < 5
     - megaparsec >= 6 && < 7
     - mtl >= 2 && < 3
-    - pretty >= 1.1 && < 1.2
+    - lens >= 4 && < 5
+    - text >= 1 && < 2
+    - prettyprinter >= 1 && < 2
+    - prettyprinter-ansi-terminal >= 1 && < 2
     - unbound-generics >= 0.3 && < 0.4
     - haskeline >= 0.7 && < 0.8
     - ansi-terminal >= 0.7 && < 0.8
@@ -46,7 +49,14 @@ executables:
     - FlexibleContexts
     - FlexibleInstances
     - MultiParamTypeClasses
+    - DeriveFunctor
+    - DeriveTraversable
+    - DeriveFoldable
+    - DeriveDataTypeable 
+    - DeriveGeneric 
+    - ScopedTypeVariables
     - ViewPatterns
+    - GeneralizedNewtypeDeriving
 
 # tests:
 #   miniprl-test:

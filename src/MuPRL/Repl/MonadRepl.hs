@@ -1,16 +1,23 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module MuPRL.Repl where
+module MuPRL.Repl.MonadRepl where
 
 import Control.Monad.Trans
 import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Monad.State.Lazy
-import Unbound.Generics.LocallyNameless
+
 import System.Console.Haskeline.MonadException
 import qualified System.Console.Haskeline as H
+import Unbound.Generics.LocallyNameless.Fresh
 import System.Console.ANSI
-import System.Exit
+
+import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Render.Terminal
+import qualified Data.Text as T
+import Data.Text (Text)
+
+import MuPRL.Error
 
 type Repl = ReplT IO
 
@@ -19,6 +26,9 @@ newtype ReplT (m :: * -> *) a = ReplT { unRepl :: H.InputT m a }
 
 runReplT :: MonadException m =>  ReplT m a -> m a
 runReplT m = H.runInputT H.defaultSettings (H.withInterrupt (unRepl m))
+
+runRepl :: Repl a -> IO a
+runRepl = runReplT
 
 -- | Boilerplate MTL definitions
 instance MonadException m => MonadException (ExceptT e m) where
@@ -38,16 +48,16 @@ instance MonadException m => MonadException (StateT s m) where
                     in (`runStateT` s) <$> f run'
 
 class MonadException m => MonadRepl m where
-    getInputLine :: String -> m (Maybe String)
-    getInputChar :: String -> m (Maybe Char)
-    outputStr    :: String -> m ()
-    outputStrLn  :: String -> m ()
+    getInputLine :: Text -> m (Maybe Text)
+    getInputChar :: Text -> m (Maybe Char)
+    outputStr    :: Text -> m ()
+    outputStrLn  :: Text -> m ()
   
 instance MonadException m => MonadRepl (H.InputT m) where
-    getInputLine = H.getInputLine
-    getInputChar = H.getInputChar
-    outputStr = H.outputStr
-    outputStrLn = H.outputStrLn
+    getInputLine t = (fmap T.pack) <$> (H.getInputLine $ T.unpack t)
+    getInputChar t = H.getInputChar $ T.unpack t
+    outputStr t = H.outputStr $ T.unpack t
+    outputStrLn t = H.outputStrLn $ T.unpack t
 
 instance MonadRepl m => MonadRepl (ReaderT r m) where
     getInputLine = lift . getInputLine
@@ -67,17 +77,21 @@ instance MonadRepl m => MonadRepl (FreshMT m) where
     outputStr = lift . outputStr
     outputStrLn = lift . outputStrLn
 
-printErr :: (MonadIO m) => String -> m ()
-printErr err = liftIO $ putStr $ prefix ++ err ++ suffix
-    where
-        prefix = setSGRCode [SetColor Foreground Vivid Red]
-        suffix = setSGRCode [Reset]
+render :: (Pretty a) => a -> Text
+render a = renderStrict $ layoutPretty defaultLayoutOptions $ pretty a
 
-indent :: Int -> String -> String
-indent n str = replicate (4*n) ' ' ++ str
+display :: (MonadRepl m, Pretty a) => a -> m ()
+display = outputStr . render
 
-showErr :: (Show e, MonadIO m) => e -> m ()
-showErr err = printErr $ show err ++ "\n"
+displayLn :: (MonadRepl m, Pretty a) => a -> m ()
+displayLn = outputStrLn . render
+
+printError :: (MonadRepl m, Error e) => e -> m ()
+printError err = outputStrLn $ renderError err
 
 abort :: (MonadRepl m) => m a
 abort = throwIO H.Interrupt
+
+hoistError :: (MonadRepl m, Error e) => Either e a -> m a
+hoistError (Left err) = printError err >> abort
+hoistError (Right a) = return a

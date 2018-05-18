@@ -1,23 +1,23 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Control.Applicative
-import Control.Monad.Reader
-import Control.Monad.Except
-import Control.Monad
-import Control.Monad.Trans
-import Unbound.Generics.LocallyNameless
-import System.Console.ANSI
-import Data.List (isPrefixOf)
-import qualified Data.Sequence as Seq
+-- import Control.Applicative
+-- import Control.Monad.Reader
+-- import Control.Monad.Except
+-- import Control.Monad
+-- import Control.Monad.Trans
+-- import Unbound.Generics.LocallyNameless
+-- import System.Console.ANSI
+-- import Data.List (isPrefixOf)
+-- import qualified Data.Sequence as Seq
 
-import MuPRL.Parser.Parser
-import MuPRL.Syntax
-import MuPRL.PrettyPrint
-import MuPRL.LCF
-import MuPRL.Rules
-import MuPRL.Refinement
-import MuPRL.Repl
+import MuPRL.Parser.Parser (term)
+import MuPRL.Parser.Stack
+import MuPRL.Refine.Telescope
+import MuPRL.Refine.ProofState
+
+import MuPRL.Repl.MonadRepl
+import MuPRL.Repl.Repl
 
 
 loop :: Repl ()
@@ -25,15 +25,13 @@ loop = do
     input <- getInputLine "μPRL>"
     case input of
         Just i -> case runParser term i of
-            Left err -> printErr err >> loop
+            Left err -> printError err >> loop
             Right t -> do
-                extract <- runRefinement $ refine (Seq.empty :>> t)
-                outputStrLn $ pp extract
+                extract <- runRefine $ refine (empty :>> t)
+                displayLn extract
                 loop
         Nothing -> outputStrLn "Goodbye"
 
 
 main :: IO ()
 main = runReplT loop
-
-    --evalRepl "μPRL>" exec cmd completer (return ())

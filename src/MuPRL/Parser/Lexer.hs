@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module MuPRL.Parser.Lexer where
     
 import Data.Functor (void)
@@ -5,14 +6,11 @@ import Control.Applicative ((<|>))
 import qualified Text.Megaparsec as P
 import qualified Text.Megaparsec.Char as P
 import qualified Text.Megaparsec.Char.Lexer as L
-import Data.Void (Void)
-import Control.Monad.Trans
-import Unbound.Generics.LocallyNameless
 
-type Parser = P.ParsecT Void String FreshM
+import Data.Text (Text)
+import qualified Data.Text as T
 
-instance Fresh Parser where
-    fresh = lift . fresh
+import MuPRL.Parser.Stack
 
 lineCmt :: Parser ()
 lineCmt = L.skipLineComment "--"
@@ -26,10 +24,10 @@ sc = L.space P.space1 lineCmt blockCmt
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
-symbol :: String -> Parser String
+symbol :: Text -> Parser Text
 symbol = L.symbol sc
 
-symbol' :: String -> Parser ()
+symbol' :: Text -> Parser ()
 symbol' = void . symbol 
 
 integer :: Parser Integer
@@ -53,25 +51,25 @@ dot = symbol' "."
 colon :: Parser ()
 colon = symbol' ":"
 
-reserved :: String -> Parser ()
+reserved :: Text -> Parser ()
 reserved s = lexeme (P.string s *> P.notFollowedBy P.alphaNumChar)
 
-identifier :: Parser String
+identifier :: Parser Text
 identifier = (lexeme . P.try) (ident >>= checkReserved)
     where
-        ident = (:) <$> P.lowerChar <*> (P.many (P.alphaNumChar <|> P.char '\''))
+        ident = (T.cons) <$> P.lowerChar <*> (T.pack <$> P.many (P.alphaNumChar <|> P.char '\''))
 
-uidentifier :: Parser String
+uidentifier :: Parser Text
 uidentifier = (lexeme . P.try) (ident >>= checkReserved)
     where
-        ident = (:) <$> P.upperChar <*> (P.many (P.alphaNumChar <|> P.char '\''))
+        ident = (T.cons) <$> P.upperChar <*> (T.pack <$> P.many (P.alphaNumChar <|> P.char '\''))
 
-checkReserved :: String -> Parser String
+checkReserved :: Text -> Parser Text
 checkReserved i = if i `elem` reservedWords
-                    then fail $ "reserved word " ++ i ++ " is not a valid identifier"
+                    then fail $ "reserved word " ++ (T.unpack i) ++ " is not a valid identifier"
                     else return i
 
-reservedWords :: [String]
+reservedWords :: [Text]
 reservedWords = 
     [ "in"
     , "void"

@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 13d4e9f6034131ac68d936372d92403faa09a1ab5ec8e03546ec7058be186c3b
+-- hash: 429d0f5740f4de36c8a109265f6b4a2020e9ec58e8b79f2b996eab45fa7bad4c
 
 name:           muprl
 version:        0.1.0.0
@@ -27,27 +27,33 @@ source-repository head
 executable muprl
   main-is: MuPRL/Main.hs
   other-modules:
-      MuPRL.Environment
-      MuPRL.LCF
+      MuPRL.Core.Term
+      MuPRL.Error
       MuPRL.Parser.Lexer
       MuPRL.Parser.Parser
+      MuPRL.Parser.Stack
       MuPRL.PrettyPrint
-      MuPRL.Refinement
-      MuPRL.Repl
-      MuPRL.Rules
-      MuPRL.Syntax
+      MuPRL.Refine.ProofState
+      MuPRL.Refine.Rules
+      MuPRL.Refine.Tactics
+      MuPRL.Refine.Telescope
+      MuPRL.Repl.MonadRepl
+      MuPRL.Repl.Repl
       Paths_muprl
   hs-source-dirs:
       src
-  default-extensions: TupleSections LambdaCase MultiWayIf FlexibleContexts FlexibleInstances MultiParamTypeClasses ViewPatterns
+  default-extensions: TupleSections LambdaCase MultiWayIf FlexibleContexts FlexibleInstances MultiParamTypeClasses DeriveFunctor DeriveTraversable DeriveFoldable DeriveDataTypeable DeriveGeneric ScopedTypeVariables ViewPatterns GeneralizedNewtypeDeriving
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       ansi-terminal >=0.7 && <0.8
     , base >=4.7 && <5
     , containers >=0.5 && <0.6
     , haskeline >=0.7 && <0.8
+    , lens >=4 && <5
     , megaparsec >=6 && <7
     , mtl >=2 && <3
-    , pretty >=1.1 && <1.2
+    , prettyprinter >=1 && <2
+    , prettyprinter-ansi-terminal >=1 && <2
+    , text >=1 && <2
     , unbound-generics >=0.3 && <0.4
   default-language: Haskell2010
