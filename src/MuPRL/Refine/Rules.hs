@@ -82,6 +82,7 @@ intro :: (MonadRule m, MonadError RuleError m) => Telescope Term -> Term -> m (P
 intro _ (Equals Void Void (Universe _)) = return axiomatic
 intro _ (Equals (Universe i) (Universe j) (Universe k)) | (max i j < k) = return axiomatic
                                                         | otherwise = throwError $ UniverseMismatch (max i j) k
+intro hyp (Equals (Var x) (Var x') t) | Tl.anyKey (\y t' -> y == x || y == x' && aeq t t') hyp = return axiomatic
 intro hyp (Pi bnd) = do
     ((x, unembed -> a), bx) <- unbind bnd
     -- We first need to check the well formedness of 'a'

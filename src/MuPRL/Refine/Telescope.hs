@@ -49,6 +49,11 @@ find _ Empty = Nothing
 find p (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) | p xt = Just (x, xt)
                                                         | otherwise = find p tl
 
+anyKey :: (Typeable t, Alpha t) => (Name Term -> t -> Bool) -> Telescope t -> Bool
+anyKey _ Empty = False
+anyKey p (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) | p x xt = True
+                                                          | otherwise = anyKey p tl
+
 -- Note that Telescope v is not an instance of Foldable, as we can only fold when the elements can be compared using α-equivalence
 foldr :: (Typeable a, Alpha a) => (a -> b -> b) -> b -> Telescope a -> b
 foldr _ b Empty = b
