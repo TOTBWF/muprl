@@ -1,6 +1,6 @@
 module MuPRL.PrettyPrint
     ( module P
-    , PrettyFresh (..)
+    , PrettyM (..)
     )
 where
 
@@ -10,8 +10,8 @@ import Unbound.Generics.LocallyNameless.LFresh
 
 import Data.Text.Prettyprint.Doc as P
 
-class PrettyFresh a where
-    prettyFresh :: a -> LFreshM (Doc ann)
+class PrettyM a where
+    prettyM :: a -> LFreshM (Doc ann)
 
 -- import MuPRL.Syntax
 -- import MuPRL.LCF

@@ -59,9 +59,9 @@ term = P.makeExprParser appTerm operators
 
 rule :: (MonadRule m) => Parser (Rule m Judgement)
 rule = reserved "by" *> P.choice 
-    [ reserved "assumption" $> assumption
+    [ reserved "assumption" $> (mkRule assumption)
     -- , introApp <$> (reserved "intro-app" *> reserved "using" *> term)
-    , reserved "intro" $> intro
+    , reserved "intro" $> (mkRule intro)
     ]
     -- [ reserved "hypothesis" *> pure hypothesis
     -- , reserved "intro-void" *> pure introVoid

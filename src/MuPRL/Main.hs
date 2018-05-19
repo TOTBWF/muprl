@@ -13,7 +13,7 @@ module Main where
 
 import MuPRL.Parser.Parser (term)
 import MuPRL.Parser.Stack
-import MuPRL.Refine.Telescope
+import MuPRL.Refine.Telescope as Tl
 import MuPRL.Refine.ProofState
 
 import MuPRL.Repl.MonadRepl
@@ -27,8 +27,8 @@ loop = do
         Just i -> case runParser term i of
             Left err -> printError err >> loop
             Right t -> do
-                extract <- runRefine $ refine (empty :>> t)
-                displayLn extract
+                extract <- runRefine $ refine (Tl.empty |- t)
+                outputStr "Extract: " >> displayLn extract
                 loop
         Nothing -> outputStrLn "Goodbye"
 

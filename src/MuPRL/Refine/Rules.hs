@@ -2,8 +2,6 @@
 module MuPRL.Refine.Rules where
 
 import Control.Monad.Except
-import qualified Data.Sequence as Seq
-import Data.Sequence (Seq(..))
 import Unbound.Generics.LocallyNameless
 import Unbound.Generics.LocallyNameless.Fresh
 
@@ -12,7 +10,7 @@ import MuPRL.PrettyPrint
 import MuPRL.Core.Term
 import MuPRL.Refine.ProofState
 import qualified MuPRL.Refine.Telescope as Tl
-import MuPRL.Refine.Telescope (Telescope)
+import MuPRL.Refine.Telescope (Telescope, (@>))
 
 type MonadRule m = (Fresh m)
 
@@ -41,7 +39,9 @@ search t tl = Tl.find (aeq t) tl
 goal :: (Fresh m) => Judgement -> m ((MetaVar, Judgement), Extract)
 goal a = do
     x <- metavar
-    return ((x, a), Hole x)
+    -- let ms = fst <$> Tl.toList ctx
+    -- TODO: In theory, 'x' can reference variables in the judgement context
+    return ((x, a), Var x)
 
 -- | Infers the universe level of a given term
 inferUniverse :: (Fresh m) => Term -> m Int
@@ -52,34 +52,53 @@ inferUniverse (Pi bnd) = do
 inferUniverse (Equals _ _ a) = inferUniverse a
 inferUniverse _ = return 0
 
+-- member :: (Fresh m) => Term -> m Term
+-- member t = do
+--     k <- inferUniverse t
+--     return (EqType t t (Universe k))
+
 -- | Create a well-formedness goal
 wellFormed :: (Fresh m) => Telescope Term -> Term -> m ((MetaVar, Judgement), Extract)
 wellFormed s t = do
     k <- inferUniverse t
-    goal (s :>> Equals t t (Universe k))
+    goal (s |- Equals t t (Universe k))
 
 
 ruleMismatch :: (MonadError RuleError m) => Judgement -> m a
 ruleMismatch jdg = throwError $ RuleMismatch jdg
 
-assumption :: (MonadRule m) => Rule m Judgement
-assumption = Rule $ \case
-    (ctx :>> a) -> 
-        case search a ctx of
-            Just (x, a') -> return (Tl.empty :#> (Hole x))
-            Nothing -> throwError $ NotInContext a
+mkRule :: (MonadRule m) => (Telescope Term -> Term -> ExceptT RuleError m (ProofState Judgement)) -> Rule m Judgement
+mkRule f = Rule $ \(Judgement bnd) -> do
+    (hyps, goal) <- unbind bnd
+    f hyps goal
 
+assumption :: (MonadRule m, MonadError RuleError m) => Telescope Term -> Term -> m (ProofState Judgement)
+assumption hyp goal =
+        case search goal hyp of
+            Just (x,_) -> return (Tl.empty |> Var x)
+            Nothing -> throwError $ NotInContext goal
 
-intro :: (MonadRule m) => Rule m Judgement
-intro = Rule $ \case
-    -- Equality
-    (_ :>> Equals Void Void (Universe _)) -> axiomatic
-    (_ :>> Equals Axiom Axiom (Universe _)) -> axiomatic
-    -- Functions
-    (ctx :>> Pi bnd) -> do
-        ((x, unembed -> a), b) <- unbind bnd
-        -- We first need to check the well formedness of 'a'
-        (wGoal, _) <- wellFormed ctx a
-        (bGoal, body) <- goal (Tl.extend ctx x a :>> b)
-        return (Tl.fromList [bGoal, wGoal] :#> lambda x body)
-    jdg -> ruleMismatch jdg
+intro :: (MonadRule m, MonadError RuleError m) => Telescope Term -> Term -> m (ProofState Judgement)
+intro _ (Equals Void Void (Universe _)) = return axiomatic
+intro _ (Equals (Universe i) (Universe j) (Universe k)) | (max i j < k) = return axiomatic
+                                                        | otherwise = throwError $ UniverseMismatch (max i j) k
+intro hyp (Pi bnd) = do
+    ((x, unembed -> a), bx) <- unbind bnd
+    -- We first need to check the well formedness of 'a'
+    (wGoal, _) <- wellFormed hyp a
+    -- p <- member a
+    (bGoal, body) <- goal (Tl.extend x a hyp |- bx)
+    return ((Tl.empty @> wGoal @> bGoal) |> lambda x body)
+intro hyps goal = ruleMismatch (hyps |- goal)
+    -- We first need to check the well formedness of 'a'
+
+    -- (_ :>> Equals Void Void (Universe _)) -> axiomatic
+    -- (_ :>> Equals Axiom Axiom (Universe _)) -> axiomatic
+    -- -- Functions
+    -- (ctx :>> Pi bnd) -> do
+    --     ((x, unembed -> a), bx) <- unbind bnd
+    --     -- We first need to check the well formedness of 'a'
+    --     (wGoal, j) <- wellFormed ctx a
+    --     (bGoal, body) <- goal (Tl.extend ctx x a :>> bx)
+    --     return ((Tl.empty @> bGoal @> wGoal) :#> lambda x body)
+    -- jdg -> ruleMismatch jdg

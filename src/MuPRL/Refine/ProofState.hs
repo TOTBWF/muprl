@@ -7,11 +7,14 @@ import Data.Sequence (Seq(..))
 
 import Unbound.Generics.LocallyNameless
 import Unbound.Generics.LocallyNameless.Fresh
+import Data.Typeable (Typeable)
+import GHC.Generics
 
 import MuPRL.PrettyPrint
 
 import MuPRL.Core.Term
-import MuPRL.Refine.Telescope
+import MuPRL.Refine.Telescope (Telescope)
+import qualified MuPRL.Refine.Telescope as Tl
 
 {-
 A proof state is a telescope of judgements that bind metavars in the rest of the telescope
@@ -54,53 +57,55 @@ But this kind of sucks, as you need to provide a witness for A, and you can't pr
 The way around this is to use Dependent LCF, which allows us to partially construct M as we further refine A.
 -}
 
--- | A Judgement is a sequence of Hypotheses (In the form of variables bound to terms), along with a goal
--- instance Pretty Judgement where
---     ppr (ctx :>> t) = do
---         pctx <- foldM (\p (x,t') -> do
---                 px <- ppr x
---                 pt' <- ppr t'
---                 return $ px <> text ":" <> pt' <> text "," <+> p) (text "") ctx
---         pt <- ppr t
---         return $ pctx <> text "H >>" <+> pt
-data Judgement = (Telescope Term) :>> Term
+-- | A Judgement is a sequence of hypotheses (In the form of variables bound to terms), 
+-- | along with a goal that may take its variables from the hypotheses
 
-instance PrettyFresh Judgement where
-    prettyFresh (ctx :>> j) = do
-        pctx <- traverse (\(x, t) -> fmap (\pt -> pretty x <> pretty ":" <> pt) $ prettyFresh t) $ toList ctx
-        pt <- prettyFresh j
-        return $ hsep (punctuate comma pctx) <> pretty " >>" <+> pt
+newtype Judgement = Judgement (Bind (Telescope Term) Term)
+    deriving (Show, Typeable, Generic)
+
+instance Alpha Judgement
+
+instance PrettyM Judgement where
+    prettyM (Judgement bnd) = lunbind bnd $ \(hyps, goal) -> do
+        pctx <- traverse (\(x,xt) -> fmap (\pxt -> pretty x <> pretty ":" <> pxt) $ prettyM xt) $ Tl.toList hyps
+        pgoal <- prettyM goal
+        return $ hsep (punctuate comma pctx) <+> pretty "⊢" <+> pgoal
 
 instance Pretty Judgement where
-    pretty = runLFreshM . prettyFresh
+    pretty = runLFreshM . prettyM
 
-
-
-substJdg :: (Subst b Term) => Name b -> b -> Judgement -> Judgement
-substJdg x b (ctx :>> g) = (fmap (subst x b) ctx :>> subst x b g)
+(|-) :: Telescope Term -> Term -> Judgement
+hyps |- goal = Judgement (bind hyps goal)
+-- substJdg :: (Fresh m, Subst b Term) => Name b -> b -> Judgement -> m Judgement
+-- substJdg x b (Judgement bnd) = do
+--     (hyp, goal) <- unbind bnd
+--     undefined
+-- substJdg x b (ctx  g) = (fmap (subst x b) ctx :>> subst x b g)
 
 -- | The Proof State consists of a sequence of variables bound to judgements,
 -- | (where the variable references the extract of the judgement).
 -- | Each judgement can take free variables from earlier in the sequence.
 -- | It also contains an evidence term that takes its free variables from the sequence.
-data ProofState a = Telescope a :#> Extract
+newtype ProofState a = ProofState (Bind (Telescope a) Term)
 
+(|>) :: (Typeable a, Alpha a) => Telescope a -> Term -> ProofState a
+ctx |> extract = ProofState (bind ctx extract)
 
 -- ProofStates form a monad, but only over proper judgement types.
 wrap :: (Fresh m) => Judgement -> m (ProofState Judgement)
 wrap j = do
     x <- metavar
-    return (singleton x j :#> Hole x)
+    return (Tl.singleton x j |> Var x)
 
-collapse :: ProofState (ProofState Judgement) -> ProofState Judgement
-collapse (tl :#> extract) = foldrVars go (empty :#> extract) tl
-    where
-        go :: MetaVar -> ProofState Judgement -> ProofState Judgement -> ProofState Judgement
-        go x (tlx :#> ax) (tl :#> a) = 
-            let tl' = fmap (substJdg x ax) tl
-                a' = subst x ax a
-            in (tl' :#> a')
+-- collapse :: ProofState (ProofState Judgement) -> ProofState Judgement
+-- collapse (tl :#> extract) = foldrVars go (empty :#> extract) tl
+--     where
+--         go :: MetaVar -> ProofState Judgement -> ProofState Judgement -> ProofState Judgement
+--         go x (tlx :#> ax) (tl :#> a) = 
+--             let tl' = fmap (substJdg x ax) tl
+--                 a' = subst x ax a
+--             in (tl' :#> a')
 
 -- | Helper function for axiomatic evidence
-axiomatic :: (Monad m) => m (ProofState a)
-axiomatic = return (empty :#> Axiom)
+axiomatic :: (Typeable a, Alpha a) => ProofState a
+axiomatic = Tl.empty |> Axiom

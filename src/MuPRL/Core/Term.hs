@@ -18,7 +18,6 @@ type Extract = Term
 
 data Term
     = Var Var
-    | Hole MetaVar
     | Void
     | Axiom
     | Universe Int
@@ -32,7 +31,6 @@ instance Alpha Term
 
 instance Subst Term Term where
     isvar (Var x) = Just (SubstName x)
-    isvar (Hole x) = Just (SubstName x)
     isvar _ = Nothing
 
 lambda :: Var -> Term -> Term
@@ -45,7 +43,7 @@ wildcardName :: (Fresh m) => m MetaVar
 wildcardName = (fresh $ string2Name "_")
 
 metavar :: (Fresh m) => m MetaVar
-metavar = (fresh $ string2Name "_")
+metavar = (fresh $ string2Name "?_")
 
 {- Pretty Printing -}
 
@@ -53,25 +51,25 @@ instance Pretty (Name a) where
     pretty = pretty . name2String
 
 instance Pretty Term where
-    pretty = runLFreshM . prettyFresh
+    pretty = runLFreshM . prettyM
 
-instance PrettyFresh Term where
-    prettyFresh (Var x) = return $ pretty x
-    prettyFresh (Hole x) = return $ pretty "?" <> pretty x
-    prettyFresh Void = return $ pretty "void"
-    prettyFresh Axiom = return $ pretty "axiom"
-    prettyFresh (Universe k) = return $ pretty "universe" <+> pretty k
-    prettyFresh (Lam bnd) = lunbind bnd $ \(x,b) -> (\b -> pretty "\\" <> pretty x <> dot <+> b) <$> prettyFresh b  
-    prettyFresh (Pi bnd) = lunbind bnd $ \((x,unembed -> t), b) -> do
-        pt <- prettyFresh t
-        pb <- prettyFresh b
+instance PrettyM Term where
+    prettyM (Var x) = return $ pretty x
+    -- prettyM (Hole x) = return $ pretty "?" <> pretty x
+    prettyM Void = return $ pretty "void"
+    prettyM Axiom = return $ pretty "axiom"
+    prettyM (Universe k) = return $ pretty "universe" <+> pretty k
+    prettyM (Lam bnd) = lunbind bnd $ \(x,b) -> (\b -> pretty "\\" <> pretty x <> dot <+> b) <$> prettyM b  
+    prettyM (Pi bnd) = lunbind bnd $ \((x,unembed -> t), b) -> do
+        pt <- prettyM t
+        pb <- prettyM b
         return $ parens (pretty x <> pretty ":" <> pt) <+> pretty "->" <+> pb
-    prettyFresh (App f a) = do
-        pf <- prettyFresh f
-        pa <- prettyFresh a
+    prettyM (App f a) = do
+        pf <- prettyM f
+        pa <- prettyM a
         return $ pf <+> pa
-    prettyFresh (Equals e1 e2 t) = do
-        pe1 <- prettyFresh e1
-        pe2 <- prettyFresh e2
-        pt <- prettyFresh t
+    prettyM (Equals e1 e2 t) = do
+        pe1 <- prettyM e1
+        pe2 <- prettyM e2
+        pt <- prettyM t
         return $ pe1 <+> pretty "=" <+> pe2 <+> pretty "in" <+> pt
