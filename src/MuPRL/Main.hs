@@ -22,7 +22,7 @@ import MuPRL.Repl.Repl
 
 loop :: Repl ()
 loop = do
-    input <- getInputLine "μPRL>"
+    input <- getInputLine "μPRL> "
     case input of
         Just i -> case runParser term i of
             Left err -> printError err >> loop

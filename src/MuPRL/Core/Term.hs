@@ -4,6 +4,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Unbound.Generics.LocallyNameless
 import Unbound.Generics.LocallyNameless.Fresh
+import Unbound.Generics.LocallyNameless.Internal.Fold (toListOf)
 
 import GHC.Generics
 import Data.Typeable (Typeable)
@@ -44,6 +45,9 @@ wildcardName = (fresh $ string2Name "_")
 
 metavar :: (Fresh m) => m MetaVar
 metavar = (fresh $ string2Name "?_")
+
+fvSet :: (Alpha a, Typeable b) => a -> Set (Name b)
+fvSet = Set.fromList . toListOf fv
 
 {- Pretty Printing -}
 
