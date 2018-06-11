@@ -1,8 +1,8 @@
--- This file has been generated from package.yaml by hpack version 0.27.0.
+-- This file has been generated from package.yaml by hpack version 0.28.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 429d0f5740f4de36c8a109265f6b4a2020e9ec58e8b79f2b996eab45fa7bad4c
+-- hash: caec41fa72cfca0b434f4be4ccca4c9e999cbf6544c4e9cc5e4b9a3ce658ea7a
 
 name:           muprl
 version:        0.1.0.0
@@ -15,7 +15,6 @@ copyright:      2018 Reed Mullanix
 license:        BSD3
 build-type:     Simple
 cabal-version:  >= 1.10
-
 extra-source-files:
     ChangeLog.md
     README.md
@@ -27,11 +26,13 @@ source-repository head
 executable muprl
   main-is: MuPRL/Main.hs
   other-modules:
+      MuPRL.Core.Eval
       MuPRL.Core.Term
       MuPRL.Error
       MuPRL.Parser.Lexer
-      MuPRL.Parser.Parser
       MuPRL.Parser.Stack
+      MuPRL.Parser.Tactic
+      MuPRL.Parser.Term
       MuPRL.PrettyPrint
       MuPRL.Refine.ProofState
       MuPRL.Refine.Rules

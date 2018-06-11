@@ -76,17 +76,22 @@ instance Pretty Judgement where
 
 (|-) :: Telescope Term -> Term -> Judgement
 hyps |- goal = Judgement (bind hyps goal)
--- substJdg :: (Fresh m, Subst b Term) => Name b -> b -> Judgement -> m Judgement
--- substJdg x b (Judgement bnd) = do
---     (hyp, goal) <- unbind bnd
---     undefined
--- substJdg x b (ctx  g) = (fmap (subst x b) ctx :>> subst x b g)
+
+substJdg :: (Fresh m, Subst b Term) => Name b -> b -> Judgement -> m Judgement
+substJdg x b (Judgement bnd) = do
+    (hyp, goal) <- unbind bnd
+    let hyps' = Tl.map (subst x b) hyp
+    let goal' = subst x b goal
+    return (hyps' |- goal')
 
 -- | The Proof State consists of a sequence of variables bound to judgements,
 -- | (where the variable references the extract of the judgement).
 -- | Each judgement can take free variables from earlier in the sequence.
 -- | It also contains an evidence term that takes its free variables from the sequence.
 newtype ProofState a = ProofState (Bind (Telescope a) Term)
+    deriving (Show, Generic)
+
+instance (Typeable a, Alpha a) => Alpha (ProofState a)
 
 (|>) :: (Typeable a, Alpha a) => Telescope a -> Term -> ProofState a
 ctx |> extract = ProofState (bind ctx extract)
@@ -97,14 +102,18 @@ wrap j = do
     x <- metavar
     return (Tl.singleton x j |> Var x)
 
--- collapse :: ProofState (ProofState Judgement) -> ProofState Judgement
--- collapse (tl :#> extract) = foldrVars go (empty :#> extract) tl
---     where
---         go :: MetaVar -> ProofState Judgement -> ProofState Judgement -> ProofState Judgement
---         go x (tlx :#> ax) (tl :#> a) = 
---             let tl' = fmap (substJdg x ax) tl
---                 a' = subst x ax a
---             in (tl' :#> a')
+collapse :: forall m. (Fresh m) => ProofState (ProofState Judgement) -> m (ProofState Judgement)
+collapse (ProofState bnd) = do
+    (goals, extract) <- unbind bnd
+    (goals', extract') <- Tl.foldMWithKey applySubst (Tl.empty, extract) goals
+    return (goals' |> extract')
+    where
+        applySubst :: (Telescope Judgement, Term) -> Name Term -> ProofState Judgement -> m (Telescope Judgement, Term)   
+        applySubst (tl, a) x (ProofState bnd) = do
+            (tlx, ax) <- unbind bnd
+            tl' <- Tl.traverse (substJdg x ax) tl
+            let a' = subst x ax a
+            return (tl `Tl.concat` tl', a')
 
 -- | Helper function for axiomatic evidence
 axiomatic :: (Typeable a, Alpha a) => ProofState a

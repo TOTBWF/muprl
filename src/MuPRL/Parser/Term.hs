@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module MuPRL.Parser.Parser where
+module MuPRL.Parser.Term where
 
 import Prelude hiding (pi)
 
@@ -31,8 +31,6 @@ termExpr :: Parser Term
 termExpr = P.choice
     [ Var <$> variable
     , reserved "void"  $> Void
-    -- , reserved "unit" $> Unit
-    -- , reserved "nil" $> Nil
     , reserved "axiom" $> Axiom
     , Universe . fromIntegral <$> (reserved "universe" *> integer)
     , lambda <$> (slash *> variable) <*> (dot *> term)
@@ -48,27 +46,12 @@ appTerm = termExpr >>= \t ->
 operators :: [[P.Operator Parser Term]]
 operators = 
     [ [ P.InfixR (pi <$> (symbol "->" *> wildcardName)) ]
-    -- , [ P.InfixR (symbol "*" *> pure Prod) ]
-    -- , [ P.InfixR (symbol "+" *> pure Sum) ]
-    -- , [ P.Postfix ((\y a x -> Equals x y a) <$> (equals *> term) <*> (reserved "in" *> term)) 
-    --   , P.Postfix (flip eqRefl <$> (reserved "in" *> term))]
     ]
 
 term :: Parser Term
 term = P.makeExprParser appTerm operators
 
-rule :: (MonadRule m) => Parser (Rule m Judgement)
-rule = reserved "by" *> P.choice 
-    [ reserved "assumption" $> (mkRule assumption)
-    -- , introApp <$> (reserved "intro-app" *> reserved "using" *> term)
-    , reserved "intro" $> (mkRule intro)
-    ]
-    -- [ reserved "hypothesis" *> pure hypothesis
-    -- , reserved "intro-void" *> pure introVoid
-    -- , reserved "intro-unit" *> pure introUnit
-    -- , reserved "intro-nil" *> pure introNil
-    -- , reserved "intro-universe" *> pure introUniverse
-    -- ]
+
 
 
 

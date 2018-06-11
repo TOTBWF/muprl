@@ -39,7 +39,6 @@ search t tl = Tl.find (aeq t) tl
 goal :: (Fresh m) => Judgement -> m ((MetaVar, Judgement), Extract)
 goal a = do
     x <- metavar
-    -- let ms = fst <$> Tl.toList ctx
     -- TODO: In theory, 'x' can reference variables in the judgement context
     return ((x, a), Var x)
 
@@ -51,11 +50,6 @@ inferUniverse (Pi bnd) = do
     max <$> inferUniverse a <*> inferUniverse b
 inferUniverse (Equals _ _ a) = inferUniverse a
 inferUniverse _ = return 0
-
--- member :: (Fresh m) => Term -> m Term
--- member t = do
---     k <- inferUniverse t
---     return (EqType t t (Universe k))
 
 -- | Create a well-formedness goal
 wellFormed :: (Fresh m) => Telescope Term -> Term -> m ((MetaVar, Judgement), Extract)
@@ -87,19 +81,6 @@ intro hyp (Pi bnd) = do
     ((x, unembed -> a), bx) <- unbind bnd
     -- We first need to check the well formedness of 'a'
     (wGoal, _) <- wellFormed hyp a
-    -- p <- member a
     (bGoal, body) <- goal (Tl.extend x a hyp |- bx)
     return ((Tl.empty @> wGoal @> bGoal) |> lambda x body)
 intro hyps goal = ruleMismatch (hyps |- goal)
-    -- We first need to check the well formedness of 'a'
-
-    -- (_ :>> Equals Void Void (Universe _)) -> axiomatic
-    -- (_ :>> Equals Axiom Axiom (Universe _)) -> axiomatic
-    -- -- Functions
-    -- (ctx :>> Pi bnd) -> do
-    --     ((x, unembed -> a), bx) <- unbind bnd
-    --     -- We first need to check the well formedness of 'a'
-    --     (wGoal, j) <- wellFormed ctx a
-    --     (bGoal, body) <- goal (Tl.extend ctx x a :>> bx)
-    --     return ((Tl.empty @> bGoal @> wGoal) :#> lambda x body)
-    -- jdg -> ruleMismatch jdg

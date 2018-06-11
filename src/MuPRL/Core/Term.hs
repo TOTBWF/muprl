@@ -46,7 +46,7 @@ wildcardName = (fresh $ string2Name "_")
 metavar :: (Fresh m) => m MetaVar
 metavar = (fresh $ string2Name "?_")
 
-fvSet :: (Alpha a, Typeable b) => a -> Set (Name b)
+fvSet :: (Alpha a, Typeable a) => a -> Set (Name a)
 fvSet = Set.fromList . toListOf fv
 
 {- Pretty Printing -}

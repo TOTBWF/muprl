@@ -6,7 +6,7 @@ import Control.Monad.Except
 import Control.Monad.Reader
 
 import MuPRL.Parser.Stack
-import qualified MuPRL.Parser.Parser as P
+import qualified MuPRL.Parser.Tactic as P
 import Unbound.Generics.LocallyNameless
 import Unbound.Generics.LocallyNameless.Fresh
 
@@ -17,16 +17,21 @@ import MuPRL.Core.Term
 
 import MuPRL.Error
 import MuPRL.Refine.ProofState
-import MuPRL.Refine.Rules
+import MuPRL.Refine.Tactics
 import qualified MuPRL.Refine.Telescope as Tl
 import MuPRL.Refine.Telescope (Telescope, (@>))
 
 import MuPRL.Repl.MonadRepl
 
-type Refine = ReaderT Int (FreshMT Repl)
+type Refine = ReaderT Int (FreshMT (ExceptT Text Repl))
 
 runRefine :: Refine a -> Repl a
-runRefine r = runFreshMT $ runReaderT r 0
+runRefine r = do
+    r <- runExceptT $ runFreshMT $ runReaderT r 0
+    case r of
+        Left err -> outputStrLn err >> abort
+        Right a -> return a
+        -- Right a -> a
 
 refine :: Judgement -> Refine Term
 refine j = do
@@ -42,18 +47,26 @@ refine j = do
 tryRule :: Judgement -> Refine (Telescope Judgement, Term)
 tryRule j = do
     res <- run j
-    case res of
-        Left err -> displayLn err >> tryRule j
-        Right (ProofState r) -> unbind r
+    undefined
+    -- case res of
+    --     Left err -> displayLn err >> tryRule j
+    --     Right (ProofState r) -> unbind r
     where
-        run :: Judgement -> Refine (Either Text (ProofState Judgement))
-        run j = runExceptT $ do
+        run :: Judgement -> Refine (ProofState Judgement)
+        run j = do
             str <- getRefinementLine j
-            r <- liftEither $ toError $ runParser P.rule str
-            (liftEither . toError) =<< runRule j r
+            t <- liftEither $ toError $ runParser P.tactic str
+            -- r <- withExceptT undefined $ (unTactic t) j
+            -- (unTactic t) j
+            -- t <- liftEither $ toError $ runParser P.tactic str
+            -- r <- liftEither $ toError $ (unTactic t) j
+            -- r <- (liftEither . toError) =<< ((unTactic t) j)
+            undefined
 
-        liftEither :: Either e a -> ExceptT e Refine a
-        liftEither = either throwError return
+        liftEither :: (MonadError e m) => Either e a ->  m a
+        liftEither (Left e) = throwError e
+        liftEither (Right a) = return a
+
 
 getRefinementLine :: (MonadRepl m, MonadReader Int m) => Judgement -> m Text
 getRefinementLine j = do

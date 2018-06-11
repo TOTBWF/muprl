@@ -3,14 +3,14 @@ module MuPRL.Error where
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Terminal
 
+import Control.Monad.Except
 import Data.Text (Text)
 
 class Error e where
     errorText :: e -> Doc a
 
-toError :: (Error e) => Either e a -> Either Text a
-toError (Left err) = Left $ renderError err
-toError (Right r) = Right r
+-- toError (Left err) = Left $ renderError err
+-- toError (Right r) = Right r
 
 renderError :: (Error e) => e -> Text
 renderError err =

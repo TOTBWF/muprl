@@ -1,6 +1,6 @@
 module MuPRL.Refine.Telescope where
 
-import Prelude hiding (foldr, foldl)
+import Prelude hiding (foldr, foldl, map, concat, traverse)
 
 import Control.Monad.Reader
 
@@ -30,15 +30,19 @@ instance (Subst t t) => Subst t (Telescope t) where
 instance (Show t) => Pretty (Telescope t) where
     pretty t = pretty $ show t
 
+
 empty :: Telescope t
 empty = Empty
 
 singleton :: (Typeable t, Alpha t) => Name Term -> t -> Telescope t
 singleton x xt = extend x xt empty
 
-
 extend :: (Typeable t, Alpha t) => Name Term -> t -> Telescope t -> Telescope t
 extend x xt tl = SnocHyp (rebind tl (x, embed xt))
+
+concat :: (Typeable t, Alpha t) => Telescope t -> Telescope t -> Telescope t
+concat tl1 Empty = tl1
+concat tl1 (SnocHyp (unrebind -> (tl2, (x, unembed -> xt)))) = SnocHyp (rebind (concat tl1 tl2) (x, embed xt))
 
 -- | Infix, flipped, uncurried version of extend extend
 (@>) :: (Typeable t, Alpha t) => Telescope t -> (Name Term, t) -> Telescope t
@@ -53,6 +57,10 @@ anyKey :: (Typeable t, Alpha t) => (Name Term -> t -> Bool) -> Telescope t -> Bo
 anyKey _ Empty = False
 anyKey p (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) | p x xt = True
                                                           | otherwise = anyKey p tl
+
+map :: (Typeable a, Typeable b, Alpha a, Alpha b) => (a -> b) -> Telescope a -> Telescope b
+map _ Empty = Empty
+map f (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) = SnocHyp (rebind (map f tl) (x, embed $ f xt))
 
 -- Note that Telescope v is not an instance of Foldable, as we can only fold when the elements can be compared using α-equivalence
 foldr :: (Typeable a, Alpha a) => (a -> b -> b) -> b -> Telescope a -> b
@@ -77,8 +85,16 @@ foldMWithKey f b (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) = do
     b' <- f b x xt
     foldMWithKey f b' tl
 
+traverse :: (Typeable a, Typeable b, Alpha a, Alpha b, Applicative f) => (a -> f b) -> Telescope a -> f (Telescope b)
+traverse _ Empty = pure Empty
+traverse f (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) = (\tl' xt' -> SnocHyp (rebind tl' (x, embed xt'))) <$> traverse f tl <*> f xt
+
 toList :: (Typeable a, Alpha a) => Telescope a -> [(Name Term, a)]
 toList = foldrWithKey (\x xt xs-> (x,xt):xs) []
+
+unzip :: (Typeable a, Typeable b, Alpha a, Alpha b) => Telescope (a,b) -> (Telescope a, Telescope b)
+unzip = foldrWithKey (\x (a, b) (ta, tb) -> (extend x a ta, extend x b tb)) (empty, empty)
+
 
 -- | TODO: This may be broken
 withTelescope :: (Subst Term t) => Telescope Term -> t -> t
