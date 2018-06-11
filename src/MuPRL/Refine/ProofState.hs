@@ -14,6 +14,7 @@ import MuPRL.PrettyPrint
 
 import MuPRL.Core.Term
 import MuPRL.Refine.Telescope (Telescope)
+import MuPRL.Refine.Judgements
 import qualified MuPRL.Refine.Telescope as Tl
 
 {-
@@ -57,38 +58,12 @@ But this kind of sucks, as you need to provide a witness for A, and you can't pr
 The way around this is to use Dependent LCF, which allows us to partially construct M as we further refine A.
 -}
 
--- | A Judgement is a sequence of hypotheses (In the form of variables bound to terms), 
--- | along with a goal that may take its variables from the hypotheses
-
-newtype Judgement = Judgement (Bind (Telescope Term) Term)
-    deriving (Show, Typeable, Generic)
-
-instance Alpha Judgement
-
-instance PrettyM Judgement where
-    prettyM (Judgement bnd) = lunbind bnd $ \(hyps, goal) -> do
-        pctx <- traverse (\(x,xt) -> fmap (\pxt -> pretty x <> pretty ":" <> pxt) $ prettyM xt) $ Tl.toList hyps
-        pgoal <- prettyM goal
-        return $ hsep (punctuate comma pctx) <+> pretty "⊢" <+> pgoal
-
-instance Pretty Judgement where
-    pretty = runLFreshM . prettyM
-
-(|-) :: Telescope Term -> Term -> Judgement
-hyps |- goal = Judgement (bind hyps goal)
-
-substJdg :: (Fresh m, Subst b Term) => Name b -> b -> Judgement -> m Judgement
-substJdg x b (Judgement bnd) = do
-    (hyp, goal) <- unbind bnd
-    let hyps' = Tl.map (subst x b) hyp
-    let goal' = subst x b goal
-    return (hyps' |- goal')
 
 -- | The Proof State consists of a sequence of variables bound to judgements,
 -- | (where the variable references the extract of the judgement).
 -- | Each judgement can take free variables from earlier in the sequence.
 -- | It also contains an evidence term that takes its free variables from the sequence.
-newtype ProofState a = ProofState (Bind (Telescope a) Term)
+newtype ProofState a = ProofState { unProofState :: (Bind (Telescope a) Term) }
     deriving (Show, Generic)
 
 instance (Typeable a, Alpha a) => Alpha (ProofState a)

@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: caec41fa72cfca0b434f4be4ccca4c9e999cbf6544c4e9cc5e4b9a3ce658ea7a
+-- hash: d1668579a3e19aa389568e7e9f87e39eef16db1cfa671c8a1e2556403ae8c254
 
 name:           muprl
 version:        0.1.0.0
@@ -34,6 +34,7 @@ executable muprl
       MuPRL.Parser.Tactic
       MuPRL.Parser.Term
       MuPRL.PrettyPrint
+      MuPRL.Refine.Judgements
       MuPRL.Refine.ProofState
       MuPRL.Refine.Rules
       MuPRL.Refine.Tactics

@@ -17,6 +17,7 @@ import MuPRL.Core.Term
 
 import MuPRL.Error
 import MuPRL.Refine.ProofState
+import MuPRL.Refine.Judgements
 import MuPRL.Refine.Tactics
 import qualified MuPRL.Refine.Telescope as Tl
 import MuPRL.Refine.Telescope (Telescope, (@>))
@@ -45,27 +46,13 @@ refine j = do
         solve = Tl.foldMWithKey (\tl x xj -> (\xt -> tl @> (x,xt)) <$> local (+1) (refine xj)) Tl.empty 
 
 tryRule :: Judgement -> Refine (Telescope Judgement, Term)
-tryRule j = do
-    res <- run j
-    undefined
-    -- case res of
-    --     Left err -> displayLn err >> tryRule j
-    --     Right (ProofState r) -> unbind r
+tryRule j = catchError (unbind =<< unProofState <$> run j) (\err -> displayLn err >> tryRule j)
     where
         run :: Judgement -> Refine (ProofState Judgement)
         run j = do
             str <- getRefinementLine j
             t <- liftEither $ toError $ runParser P.tactic str
-            -- r <- withExceptT undefined $ (unTactic t) j
-            -- (unTactic t) j
-            -- t <- liftEither $ toError $ runParser P.tactic str
-            -- r <- liftEither $ toError $ (unTactic t) j
-            -- r <- (liftEither . toError) =<< ((unTactic t) j)
-            undefined
-
-        liftEither :: (MonadError e m) => Either e a ->  m a
-        liftEither (Left e) = throwError e
-        liftEither (Right a) = return a
+            liftError (unTactic t $ j) 
 
 
 getRefinementLine :: (MonadRepl m, MonadReader Int m) => Judgement -> m Text

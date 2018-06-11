@@ -53,6 +53,11 @@ find _ Empty = Nothing
 find p (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) | p xt = Just (x, xt)
                                                         | otherwise = find p tl
 
+findKey :: (Typeable t, Alpha t) => Name Term -> Telescope t -> Maybe t
+findKey _ Empty = Nothing
+findKey n (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) | x == n = Just xt
+                                                           | otherwise = findKey n tl
+
 anyKey :: (Typeable t, Alpha t) => (Name Term -> t -> Bool) -> Telescope t -> Bool
 anyKey _ Empty = False
 anyKey p (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) | p x xt = True

@@ -11,10 +11,11 @@ module Main where
 -- import Data.List (isPrefixOf)
 -- import qualified Data.Sequence as Seq
 
-import MuPRL.Parser.Parser (term)
+import MuPRL.Parser.Term (term)
 import MuPRL.Parser.Stack
 import MuPRL.Refine.Telescope as Tl
 import MuPRL.Refine.ProofState
+import MuPRL.Refine.Judgements
 
 import MuPRL.Repl.MonadRepl
 import MuPRL.Repl.Repl

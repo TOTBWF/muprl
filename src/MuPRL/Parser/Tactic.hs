@@ -19,19 +19,20 @@ import MuPRL.Parser.Stack
 import MuPRL.Core.Term
 
 import MuPRL.Refine.ProofState
+import MuPRL.Refine.Judgements
 import MuPRL.Refine.Rules (MonadRule, Rule, mkRule)
-import MuPRL.Refine.Tactics (MonadTactic, Tactic)
+import MuPRL.Refine.Tactics (Tactic)
 import qualified MuPRL.Refine.Rules as R
 import qualified MuPRL.Refine.Tactics as R
 
 
 rule :: (MonadRule m) => Parser (Rule m Judgement)
-rule = reserved "by" *> P.choice 
+rule = P.choice 
     [ reserved "assumption" $> (R.mkRule R.assumption)
     , reserved "intro" $> (mkRule R.intro)
     ]
 
-tactic' :: (MonadRule m, MonadTactic m) => Parser (Tactic m Judgement)
+tactic' :: (MonadRule m) => Parser (Tactic m Judgement)
 tactic' = P.choice
     [ reserved "id" $> R.idt
     , reserved "try" *> tactic
@@ -39,10 +40,10 @@ tactic' = P.choice
     , R.rule <$> (reserved "rule" *> rule)
     ]
 
-operators :: (MonadRule m, MonadTactic m) => [[P.Operator Parser (Tactic m Judgement)]]
+operators :: (MonadRule m) => [[P.Operator Parser (Tactic m Judgement)]]
 operators =
     [ [ P.InfixR (R.then_ <$ symbol ";") ]
     ]
 
-tactic :: (MonadRule m, MonadTactic m) => Parser (Tactic m Judgement)
+tactic :: (MonadRule m) => Parser (Tactic m Judgement)
 tactic = P.makeExprParser tactic' operators
