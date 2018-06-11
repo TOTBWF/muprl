@@ -36,7 +36,7 @@ tactic' :: (MonadRule m) => Parser (Tactic m Judgement)
 tactic' = P.choice
     [ reserved "id" $> R.idt
     , reserved "try" *> tactic
-    , reserved "fail" $> R.fail "TODO"
+    , reserved "fail" $> R.fail "fail tactic invoked"
     , R.rule <$> (reserved "rule" *> rule)
     ]
 

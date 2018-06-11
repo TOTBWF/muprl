@@ -88,7 +88,7 @@ collapse (ProofState bnd) = do
             (tlx, ax) <- unbind bnd
             tl' <- Tl.traverse (substJdg x ax) tl
             let a' = subst x ax a
-            return (tl `Tl.concat` tl', a')
+            return (tlx `Tl.concat` tl', a')
 
 -- | Helper function for axiomatic evidence
 axiomatic :: (Typeable a, Alpha a) => ProofState a

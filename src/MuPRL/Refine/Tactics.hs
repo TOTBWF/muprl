@@ -57,12 +57,13 @@ try t = t `orElse` idt
 fail :: (Monad m) => Text -> Tactic m Judgement
 fail t = Tactic $ \_ -> throwError $ CustomError t
 
--- | Applies a multi-tactic to the resulting goals of the 1st tactic
+-- | Applies a multi-tactic to the resu[Tactic m Judgement] -> lting goals of the 1st tactic
 seq_ :: (Fresh m) => Tactic m Judgement -> Tactic m (ProofState Judgement) -> Tactic m Judgement
 seq_ (Tactic t1) (Tactic t2) = Tactic $ \j -> do
     s <- t1 j
     s' <- t2 s
     collapse s'
+
 
 all_ :: forall m. (Fresh m) => Tactic m Judgement -> Tactic m (ProofState Judgement)
 all_ t = Tactic $ \(ProofState bnd) -> do
@@ -71,20 +72,28 @@ all_ t = Tactic $ \(ProofState bnd) -> do
     let extract' = Tl.withTelescope metavars extract
     return (s |> extract')
     where
-        applyTac :: (Telescope (ProofState Judgement), Telescope Term) -> Name Term -> Judgement -> ExceptT TacticError m (Telescope (ProofState Judgement), Telescope Term)
+        applyTac ::(Telescope (ProofState Judgement), Telescope Term) -> Name Term -> Judgement -> ExceptT TacticError m (Telescope (ProofState Judgement), Telescope Term)
         applyTac (tl, metavars) x xj = do
             (jdg, mv) <- runTac t xj
             return (tl @> (x, (jdg |> mv)), metavars @> (x, mv))
 
+-- | Applies the 1st tactic, then applies the 2nd tactic to all of the remaining goals
 then_ :: (Fresh m) => Tactic m Judgement -> Tactic m Judgement -> Tactic m Judgement
 then_ t1 t2 = seq_ t1 (all_ t2)
 
--- then_ t1 t2 = Tactic $ \j -> do
---     (goals, extract) <- runTac t1 j
---     -- (ProofState bnd) <- t1 j
---     -- (goals, extract) <- unbind 
---     undefined
--- -- | Given a list of tactics [t1, ..., tn], create a tactic that when given a proofstate [j1 ... jn], will run ti on ji
--- each :: (Monad m) => [Tactic m Judgement] -> Tactic m (ProofState Judgement)
--- each ts = Tactic $ \(jdgs :#> extract) ok err ->
---     if length ts /= length jdgs then 
+-- | Given a list of tactics [t1, ..., tn], create a tactic that when given a proofstate [j1 ... jn], will run ti on ji
+-- | If there are less tactics than goals, apply the identity tactic to the remaining ones
+each :: forall m. (Fresh m) => [Tactic m Judgement] -> Tactic m (ProofState Judgement)
+each ts = Tactic $ \(ProofState bnd) -> do
+    (goals, extract) <- unbind bnd
+    (_, s, metavars) <- Tl.foldMWithKey applyTacs (ts, Tl.empty, Tl.empty) goals
+    let extract' = Tl.withTelescope metavars extract
+    return (s |> extract')
+    where
+        applyTacs :: ([Tactic m Judgement], Telescope (ProofState Judgement), Telescope Term) -> Name Term -> Judgement -> ExceptT TacticError m ([Tactic m Judgement], Telescope (ProofState Judgement), Telescope Term)
+        applyTacs (t:ts, tl, metavars) x xj = do
+            (jdg, mv) <- runTac t xj
+            return (ts, tl @> (x, (jdg |> mv)), metavars @> (x, mv))
+        applyTacs ([], tl, metavars) x xj = do
+            (jdg, mv) <- runTac idt xj
+            return ([], tl @> (x, (jdg |> mv)), metavars @> (x, mv))

@@ -36,7 +36,7 @@ runRefine r = do
 
 refine :: Judgement -> Refine Term
 refine j = do
-    (goals, extract) <- tryRule j
+    (goals, extract) <- tryTactic j
     metavars <- solve goals
     let extract' = Tl.withTelescope metavars extract
     return extract'
@@ -45,8 +45,8 @@ refine j = do
         solve :: Telescope Judgement -> Refine (Telescope Term)
         solve = Tl.foldMWithKey (\tl x xj -> (\xt -> tl @> (x,xt)) <$> local (+1) (refine xj)) Tl.empty 
 
-tryRule :: Judgement -> Refine (Telescope Judgement, Term)
-tryRule j = catchError (unbind =<< unProofState <$> run j) (\err -> displayLn err >> tryRule j)
+tryTactic :: Judgement -> Refine (Telescope Judgement, Term)
+tryTactic j = catchError (unbind =<< unProofState <$> run j) (\err -> displayLn err >> tryTactic j)
     where
         run :: Judgement -> Refine (ProofState Judgement)
         run j = do
