@@ -68,11 +68,6 @@ mkRule f = Rule $ \(Judgement bnd) -> do
     f hyps goal
 
 assumption :: (MonadRule m, MonadError RuleError m) => Telescope Term -> Term -> m (ProofState Judgement)
-assumption hyp g@(Equals (Var a) (Var b) t) = 
-    let hasKey n = case Tl.findKey n hyp of
-            Just t' -> aeq t t'
-            Nothing -> False
-    in if (hasKey a && hasKey b) then return (Tl.empty |> Axiom) else throwError $ NotInContext g
 assumption hyp goal =
         case search goal hyp of
             Just (x,_) -> return (Tl.empty |> Var x)

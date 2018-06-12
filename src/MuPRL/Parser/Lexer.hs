@@ -54,6 +54,9 @@ dot = symbol' "."
 colon :: Parser ()
 colon = symbol' ":"
 
+comma :: Parser ()
+comma = symbol' ","
+
 reserved :: Text -> Parser ()
 reserved s = lexeme (P.string s *> P.notFollowedBy P.alphaNumChar)
 

@@ -81,6 +81,7 @@ instance MonadRepl m => MonadRepl (FreshMT m) where
 indent :: Int -> Text -> Text
 indent n = T.append (T.replicate (4*n) " ")
 
+-- | `render` pretty prints and then lays out the document with the default settings
 render :: (Pretty a) => a -> Text
 render a = renderStrict $ layoutPretty defaultLayoutOptions $ pretty a
 

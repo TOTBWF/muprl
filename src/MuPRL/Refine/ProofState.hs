@@ -68,19 +68,22 @@ newtype ProofState a = ProofState { unProofState :: (Bind (Telescope a) Term) }
 
 instance (Typeable a, Alpha a) => Alpha (ProofState a)
 
+instance (Subst Term t, Typeable t, Alpha t) => Subst Term (ProofState t)
+
 (|>) :: (Typeable a, Alpha a) => Telescope a -> Term -> ProofState a
 ctx |> extract = ProofState (bind ctx extract)
 
 -- ProofStates form a monad, but only over proper judgement types.
-wrap :: (Fresh m) => Judgement -> m (ProofState Judgement)
-wrap j = do
+return' :: (Fresh m) => Judgement -> m (ProofState Judgement)
+return' j = do
     x <- metavar
     return (Tl.singleton x j |> Var x)
 
-collapse :: forall m. (Fresh m) => ProofState (ProofState Judgement) -> m (ProofState Judgement)
-collapse (ProofState bnd) = do
+join' :: forall m. (Fresh m) => ProofState (ProofState Judgement) -> m (ProofState Judgement)
+join' (ProofState bnd) = do
     (goals, extract) <- unbind bnd
-    (goals', extract') <- Tl.foldMWithKey applySubst (Tl.empty, extract) goals
+    -- TODO: This feels like a right fold could make things easier, need to think about it
+    (goals', extract') <- Tl.foldlMWithKey applySubst (Tl.empty, extract) goals
     return (goals' |> extract')
     where
         applySubst :: (Telescope Judgement, Term) -> Name Term -> ProofState Judgement -> m (Telescope Judgement, Term)   

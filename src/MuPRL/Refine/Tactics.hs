@@ -1,4 +1,3 @@
-{-# LANGUAGE ConstraintKinds #-}
 module MuPRL.Refine.Tactics where
 
 import Control.Monad.Except
@@ -44,7 +43,7 @@ rule r = Tactic $ \j -> do
 
 -- | Identity Tactic
 idt :: (Fresh m) => Tactic m Judgement
-idt = Tactic $ \j -> wrap j
+idt = Tactic $ \j -> return' j
     
 orElse :: (Monad m) => Tactic m a -> Tactic m a -> Tactic m a
 orElse (Tactic t1) (Tactic t2) = Tactic $ \j -> catchError (t1 j) (const $ t2 j)
@@ -62,38 +61,46 @@ seq_ :: (Fresh m) => Tactic m Judgement -> Tactic m (ProofState Judgement) -> Ta
 seq_ (Tactic t1) (Tactic t2) = Tactic $ \j -> do
     s <- t1 j
     s' <- t2 s
-    collapse s'
+    join' s'
 
 
 all_ :: forall m. (Fresh m) => Tactic m Judgement -> Tactic m (ProofState Judgement)
 all_ t = Tactic $ \(ProofState bnd) -> do
     (goals, extract) <- unbind bnd
-    (s, metavars) <- Tl.foldMWithKey applyTac (Tl.empty, Tl.empty) goals
-    let extract' = Tl.withTelescope metavars extract
-    return (s |> extract')
-    where
-        applyTac ::(Telescope (ProofState Judgement), Telescope Term) -> Name Term -> Judgement -> ExceptT TacticError m (Telescope (ProofState Judgement), Telescope Term)
-        applyTac (tl, metavars) x xj = do
-            (jdg, mv) <- runTac t xj
-            return (tl @> (x, (jdg |> mv)), metavars @> (x, mv))
+    s <- Tl.traverse (unTactic t) goals
+    return (s |> extract)
 
 -- | Applies the 1st tactic, then applies the 2nd tactic to all of the remaining goals
 then_ :: (Fresh m) => Tactic m Judgement -> Tactic m Judgement -> Tactic m Judgement
 then_ t1 t2 = seq_ t1 (all_ t2)
 
+thenEach :: (Fresh m) => Tactic m Judgement -> [Tactic m Judgement] -> Tactic m Judgement
+thenEach t1 ts = seq_ t1 (each ts)
+
 -- | Given a list of tactics [t1, ..., tn], create a tactic that when given a proofstate [j1 ... jn], will run ti on ji
 -- | If there are less tactics than goals, apply the identity tactic to the remaining ones
+
 each :: forall m. (Fresh m) => [Tactic m Judgement] -> Tactic m (ProofState Judgement)
 each ts = Tactic $ \(ProofState bnd) -> do
     (goals, extract) <- unbind bnd
-    (_, s, metavars) <- Tl.foldMWithKey applyTacs (ts, Tl.empty, Tl.empty) goals
-    let extract' = Tl.withTelescope metavars extract
-    return (s |> extract')
+    (_, s) <- Tl.foldrMWithKey applyTacs (reverse ts, Tl.empty) goals
+    return (s |> extract)
     where
-        applyTacs :: ([Tactic m Judgement], Telescope (ProofState Judgement), Telescope Term) -> Name Term -> Judgement -> ExceptT TacticError m ([Tactic m Judgement], Telescope (ProofState Judgement), Telescope Term)
-        applyTacs (t:ts, tl, metavars) x xj = do
-            (jdg, mv) <- runTac t xj
-            return (ts, tl @> (x, (jdg |> mv)), metavars @> (x, mv))
-        applyTacs ([], tl, metavars) x xj = do
-            (jdg, mv) <- runTac idt xj
-            return ([], tl @> (x, (jdg |> mv)), metavars @> (x, mv))
+        applyTacs :: Name Term -> Judgement -> ([Tactic m Judgement], Telescope (ProofState Judgement)) -> ExceptT TacticError m ([Tactic m Judgement], Telescope (ProofState Judgement))
+        applyTacs x xj (t:ts, tl) = do
+            xs <- unTactic t xj
+            return (ts, tl @> (x, xs))
+        applyTacs x xj ([], tl) = do
+            xs <- unTactic idt xj
+            return ([], tl @> (x,xs))
+--     (_, s, metavars) <- Tl.foldMWithKey applyTacs (ts, Tl.empty, Tl.empty) goals
+--     let extract' = Tl.withTelescope metavars extract
+--     return (s |> extract')
+--     where
+--         applyTacs :: ([Tactic m Judgement], Telescope (ProofState Judgement), Telescope Term) -> Name Term -> Judgement -> ExceptT TacticError m ([Tactic m Judgement], Telescope (ProofState Judgement), Telescope Term)
+--         applyTacs (t:ts, tl, metavars) x xj = do
+--             (jdg, mv) <- runTac t xj
+--             return (ts, tl @> (x, (jdg |> mv)), metavars @> (x, mv))
+--         applyTacs ([], tl, metavars) x xj = do
+--             (jdg, mv) <- runTac idt xj
+--             return ([], tl @> (x, (jdg |> mv)), metavars @> (x, mv))

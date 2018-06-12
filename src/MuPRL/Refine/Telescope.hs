@@ -2,6 +2,8 @@ module MuPRL.Refine.Telescope where
 
 import Prelude hiding (foldr, foldl, map, concat, traverse)
 
+import qualified Prelude as P
+
 import Control.Monad.Reader
 
 import Data.Map.Strict (Map)
@@ -25,11 +27,15 @@ data Telescope t
 
 instance (Typeable t, Alpha t) => Alpha (Telescope t)
 
-instance (Subst t t) => Subst t (Telescope t) where
+instance (Subst Term t) => Subst Term (Telescope t)
 
-instance (Show t) => Pretty (Telescope t) where
-    pretty t = pretty $ show t
+instance (PrettyM t, Typeable t, Alpha t) => PrettyM (Telescope t) where
+    prettyM tl = do
+        ptl <- P.traverse (\(x,xt) -> fmap (\pxt -> pretty x <> pretty ":" <> pxt) $ prettyM xt) $ toList tl
+        return $ hsep (punctuate comma ptl)
 
+instance (PrettyM t, Typeable t, Alpha t) => Pretty (Telescope t) where
+    pretty = runLFreshM . prettyM
 
 empty :: Telescope t
 empty = Empty
@@ -84,70 +90,36 @@ foldlWithKey :: (Typeable a, Alpha a) => (b -> Name Term -> a -> b) -> b -> Tele
 foldlWithKey _ b Empty = b
 foldlWithKey f b (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) = foldlWithKey f (f b x xt) tl
 
-foldMWithKey :: (Typeable a, Alpha a, Monad m) => (b -> Name Term -> a -> m b) -> b -> Telescope a -> m b
-foldMWithKey _ b Empty = return b
-foldMWithKey f b (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) = do
+foldlMWithKey :: (Typeable a, Alpha a, Monad m) => (b -> Name Term -> a -> m b) -> b -> Telescope a -> m b
+foldlMWithKey _ b Empty = return b
+foldlMWithKey f b (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) = do
     b' <- f b x xt
-    foldMWithKey f b' tl
+    foldlMWithKey f b' tl
+
+foldrMWithKey :: (Typeable a, Alpha a, Monad m) => (Name Term -> a -> b -> m b) -> b -> Telescope a -> m b
+foldrMWithKey _ b Empty = return b
+foldrMWithKey f b (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) = do
+    b' <- foldrMWithKey f b tl
+    f x xt b'
 
 traverse :: (Typeable a, Typeable b, Alpha a, Alpha b, Applicative f) => (a -> f b) -> Telescope a -> f (Telescope b)
 traverse _ Empty = pure Empty
-traverse f (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) = (\tl' xt' -> SnocHyp (rebind tl' (x, embed xt'))) <$> traverse f tl <*> f xt
+traverse f (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) = (\xt' tl' -> SnocHyp (rebind tl' (x, embed xt'))) <$> f xt <*> traverse f tl
+
+traverseWithKey :: (Typeable a, Typeable b, Alpha a, Alpha b, Applicative f) => (Name Term -> a -> f b) -> Telescope a -> f (Telescope b)
+traverseWithKey _ Empty = pure Empty
+traverseWithKey f (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) = (\xt' tl' -> SnocHyp (rebind tl' (x, embed xt'))) <$> f x xt <*> traverseWithKey f tl 
 
 toList :: (Typeable a, Alpha a) => Telescope a -> [(Name Term, a)]
-toList = foldrWithKey (\x xt xs-> (x,xt):xs) []
+toList = foldlWithKey (\xs x xt -> (x,xt):xs) []
 
 unzip :: (Typeable a, Typeable b, Alpha a, Alpha b) => Telescope (a,b) -> (Telescope a, Telescope b)
 unzip = foldrWithKey (\x (a, b) (ta, tb) -> (extend x a ta, extend x b tb)) (empty, empty)
 
 
--- | TODO: This may be broken
+{-# WARNING withTelescope "This may not be correct, use with caution" #-}
 withTelescope :: (Subst Term t) => Telescope Term -> t -> t
 withTelescope Empty t = t
 withTelescope (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) t = 
-    let t' = subst x xt t
-        tl' = subst x xt tl
-    in withTelescope tl' t'
--- withTelescope v (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) t = 
---     let t' = subst x xt t
-    -- in withTelescope v tl t
-
--- withTelescope v (Empty) cont = cont $ Map.empty
--- newtype Telescope v a = Telescope v { unTelescope v :: Seq (MetaVar, a) }
---     deriving (Functor, Traversable, Foldable)
-
-
--- foldrVars :: (MetaVar -> a -> b -> b) -> b -> Telescope v a -> b
--- foldrVars f b (Telescope v t) = foldr (uncurry f) b t
-
--- foldlVars :: (b -> MetaVar -> a -> b) -> b -> Telescope v a -> b
--- foldlVars f b (Telescope v t) = foldl (\b (x,a) -> f b x a) b t
-
--- foldMVars :: (Monad m) => (b -> MetaVar -> a -> m b) -> b -> Telescope v a -> m b
--- foldMVars f b (Telescope v t) = foldM (\b (x,a) -> f b x a) b t
-
--- traverseVars :: (Applicative f) => (MetaVar -> a -> f b) -> Telescope v a -> f (Telescope v b)
--- traverseVars f (Telescope v t) = Telescope v <$> traverse (\(x,a) -> (x,) <$> f x a) t
-
--- extend:: Telescope v a -> MetaVar -> a -> Telescope v a
--- extend (Telescope v s) x t = Telescope v $ s :|> (x,t)
-
--- append :: Telescope v a -> Telescope v a -> Telescope v a
--- append (Telescope v a) (Telescope v b) = Telescope v (a >< b)
-
--- empty :: Telescope v a
--- empty = Telescope v $ Seq.empty
-
--- singleton :: MetaVar -> a -> Telescope v a
--- singleton x a = Telescope v $ Seq.singleton (x, a)
-
--- fromList :: [(MetaVar,a)] -> Telescope v a
--- fromList = Telescope v . Seq.fromList
-
--- toList :: Telescope v a -> [(MetaVar, a)]
--- toList (Telescope v t) = F.toList t
-
--- find :: (a -> Bool) -> Telescope v a -> Maybe (MetaVar, a)
--- find p (Telescope v tl) = F.find (p . snd) tl
--- -- lookup :: Int -> Telescope v a -> Maybe a
--- -- lookup i (Telescope v tl) = snd <$> Seq.lookup i tl
+    let t' = withTelescope tl t
+    in subst x xt t'

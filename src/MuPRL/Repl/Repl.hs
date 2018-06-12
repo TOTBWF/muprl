@@ -32,18 +32,17 @@ runRefine r = do
     case r of
         Left err -> outputStrLn err >> abort
         Right a -> return a
-        -- Right a -> a
 
 refine :: Judgement -> Refine Term
 refine j = do
     (goals, extract) <- tryTactic j
+    outputStr "Goals:" >> displayLn goals
     metavars <- solve goals
     let extract' = Tl.withTelescope metavars extract
     return extract'
     where
-        -- Doesn't properly do the subst
         solve :: Telescope Judgement -> Refine (Telescope Term)
-        solve = Tl.foldMWithKey (\tl x xj -> (\xt -> tl @> (x,xt)) <$> local (+1) (refine xj)) Tl.empty 
+        solve = Tl.traverse (local (+1) . refine)
 
 tryTactic :: Judgement -> Refine (Telescope Judgement, Term)
 tryTactic j = catchError (unbind =<< unProofState <$> run j) (\err -> displayLn err >> tryTactic j)
@@ -52,7 +51,7 @@ tryTactic j = catchError (unbind =<< unProofState <$> run j) (\err -> displayLn 
         run j = do
             str <- getRefinementLine j
             t <- liftEither $ toError $ runParser P.tactic str
-            liftError (unTactic t $ j) 
+            liftError (unTactic t j) 
 
 
 getRefinementLine :: (MonadRepl m, MonadReader Int m) => Judgement -> m Text

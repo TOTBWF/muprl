@@ -40,9 +40,15 @@ tactic' = P.choice
     , R.rule <$> (reserved "rule" *> rule)
     ]
 
+multitactic :: (MonadRule m) => Parser (Tactic m (ProofState Judgement))
+multitactic = P.choice
+    [ R.each <$> brackets (P.sepBy tactic comma)
+    , R.all_ <$> tactic
+    ]
+
 operators :: (MonadRule m) => [[P.Operator Parser (Tactic m Judgement)]]
 operators =
-    [ [ P.InfixR (R.then_ <$ symbol ";") ]
+    [ [ P.Postfix (symbol ";" *> (flip R.seq_ <$> multitactic)) ]
     ]
 
 tactic :: (MonadRule m) => Parser (Tactic m Judgement)
