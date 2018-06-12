@@ -17,8 +17,8 @@ import MuPRL.Core.Term
 
 import MuPRL.Error
 import MuPRL.Refine.ProofState
-import MuPRL.Refine.Judgements
-import MuPRL.Refine.Tactics
+import MuPRL.Refine.Judgement
+import MuPRL.Refine.Tactic
 import qualified MuPRL.Refine.Telescope as Tl
 import MuPRL.Refine.Telescope (Telescope, (@>))
 

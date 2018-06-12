@@ -1,4 +1,4 @@
-module MuPRL.Refine.Tactics where
+module MuPRL.Refine.Tactic where
 
 import Control.Monad.Except
 
@@ -15,8 +15,8 @@ import MuPRL.PrettyPrint
 
 import MuPRL.Core.Term
 import MuPRL.Refine.ProofState
-import MuPRL.Refine.Rules
-import MuPRL.Refine.Judgements
+import MuPRL.Refine.Rule
+import MuPRL.Refine.Judgement
 
 data TacticError 
     = RuleError RuleError
@@ -28,8 +28,11 @@ instance Error TacticError where
 
 newtype Tactic m a = Tactic { unTactic :: a -> ExceptT TacticError m (ProofState a) }
 
-runTac :: (Fresh m) => Tactic m Judgement -> Judgement -> ExceptT TacticError m (Telescope Judgement, Term)
-runTac (Tactic t) j = do
+runTactic :: (Monad m) => Judgement -> Tactic m Judgement -> m (Either TacticError (ProofState Judgement))
+runTactic j (Tactic t) = runExceptT (t j)
+
+applyTac :: (Fresh m) => Tactic m Judgement -> Judgement -> ExceptT TacticError m (Telescope Judgement, Term)
+applyTac (Tactic t) j = do
     (ProofState s) <- t j
     unbind s
 

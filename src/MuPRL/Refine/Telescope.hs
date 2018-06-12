@@ -43,6 +43,10 @@ empty = Empty
 singleton :: (Typeable t, Alpha t) => Name Term -> t -> Telescope t
 singleton x xt = extend x xt empty
 
+null :: Telescope t -> Bool
+null Empty = True
+null _ = False
+
 extend :: (Typeable t, Alpha t) => Name Term -> t -> Telescope t -> Telescope t
 extend x xt tl = SnocHyp (rebind tl (x, embed xt))
 

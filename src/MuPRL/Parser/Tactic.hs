@@ -19,11 +19,11 @@ import MuPRL.Parser.Stack
 import MuPRL.Core.Term
 
 import MuPRL.Refine.ProofState
-import MuPRL.Refine.Judgements
-import MuPRL.Refine.Rules (MonadRule, Rule, mkRule)
-import MuPRL.Refine.Tactics (Tactic)
-import qualified MuPRL.Refine.Rules as R
-import qualified MuPRL.Refine.Tactics as R
+import MuPRL.Refine.Judgement
+import MuPRL.Refine.Rule (MonadRule, Rule, mkRule)
+import MuPRL.Refine.Tactic (Tactic)
+import qualified MuPRL.Refine.Rule as R
+import qualified MuPRL.Refine.Tactic as R
 
 
 rule :: (MonadRule m) => Parser (Rule m Judgement)

@@ -1,5 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
-module MuPRL.Refine.Rules where
+module MuPRL.Refine.Rule where
 
 import Control.Monad.Except
 import Unbound.Generics.LocallyNameless
@@ -9,7 +9,7 @@ import MuPRL.Error
 import MuPRL.PrettyPrint
 import MuPRL.Core.Term
 import MuPRL.Refine.ProofState
-import MuPRL.Refine.Judgements
+import MuPRL.Refine.Judgement
 import qualified MuPRL.Refine.Telescope as Tl
 import MuPRL.Refine.Telescope (Telescope, (@>))
 

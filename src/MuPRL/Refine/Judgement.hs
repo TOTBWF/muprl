@@ -1,4 +1,4 @@
-module MuPRL.Refine.Judgements where
+module MuPRL.Refine.Judgement where
 
 import Unbound.Generics.LocallyNameless
 import Unbound.Generics.LocallyNameless.Fresh

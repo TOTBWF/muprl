@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 40743dcc86bb0bb3c5856e39a49766158a5c9f1961093c50dbe77a1005775fcd
+-- hash: 1c5b784d1d6ce230a0fbc99f15793c78b9a5a7fb609ff8cdd19a0a47e67ebc1c
 
 name:           muprl
 version:        0.1.0.0
@@ -32,14 +32,17 @@ library
       MuPRL.Parser.Stack
       MuPRL.Parser.Tactic
       MuPRL.Parser.Term
+      MuPRL.Parser.Vernacular
       MuPRL.PrettyPrint
-      MuPRL.Refine.Judgements
+      MuPRL.Refine.Judgement
       MuPRL.Refine.ProofState
-      MuPRL.Refine.Rules
-      MuPRL.Refine.Tactics
+      MuPRL.Refine.Rule
+      MuPRL.Refine.Tactic
       MuPRL.Refine.Telescope
       MuPRL.Repl.MonadRepl
       MuPRL.Repl.Repl
+      MuPRL.Vernacular.Eval
+      MuPRL.Vernacular.Syntax
   other-modules:
       Paths_muprl
   hs-source-dirs:
@@ -74,6 +77,7 @@ executable muprl
     , megaparsec >=6 && <7
     , mtl >=2 && <3
     , muprl
+    , optparse-applicative >=0.14 && <0.15
     , prettyprinter >=1 && <2
     , prettyprinter-ansi-terminal >=1 && <2
     , text >=1 && <2

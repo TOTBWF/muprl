@@ -18,7 +18,7 @@ import MuPRL.Parser.Stack
 
 import MuPRL.Core.Term
 
-import MuPRL.Refine.Rules
+import MuPRL.Refine.Rule
 import MuPRL.Refine.ProofState
 
 variable :: Parser Var

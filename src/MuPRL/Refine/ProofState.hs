@@ -14,7 +14,7 @@ import MuPRL.PrettyPrint
 
 import MuPRL.Core.Term
 import MuPRL.Refine.Telescope (Telescope)
-import MuPRL.Refine.Judgements
+import MuPRL.Refine.Judgement
 import qualified MuPRL.Refine.Telescope as Tl
 
 {-

@@ -39,6 +39,9 @@ parens = P.between (symbol "(") (symbol ")")
 brackets :: Parser a -> Parser a
 brackets = P.between (symbol "[") (symbol "]")
 
+braces :: Parser a -> Parser a
+braces = P.between (symbol "{") (symbol "}")
+
 arrow :: Parser ()
 arrow = symbol' "->"
 
