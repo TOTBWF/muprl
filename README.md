@@ -1,5 +1,5 @@
 # MuPRL
-MuPRL is a small, mainly instructional, proof assistant in the style of NuPRL.
+MuPRL is a small, mainly instructional, proof assistant in the style of NuPRL. For a good introduction to Computational Type Theory, see [this](http://www.nuprl.org/documents/Constable/naive.pdf).
 
 # Examples
 Let's try to prove a very simple tautology: "for every proposition a, a implies a".
