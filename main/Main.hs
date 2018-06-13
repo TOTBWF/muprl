@@ -29,8 +29,8 @@ import MuPRL.Repl.MonadRepl
 import MuPRL.Repl.Repl
 
 main :: IO ()
--- main = runReplT loop
-main = runReplT $ execFile "samples/id.mprl"
+main = runReplT loop
+-- main = runReplT $ execFile "samples/id.mprl"
 
 loop :: Repl ()
 loop = do
