@@ -66,12 +66,17 @@ reserved s = lexeme (P.string s *> P.notFollowedBy P.alphaNumChar)
 identifier :: Parser Text
 identifier = (lexeme . P.try) (ident >>= checkReserved)
     where
-        ident = (T.cons) <$> P.lowerChar <*> (T.pack <$> P.many (P.alphaNumChar <|> P.char '\''))
+        ident = T.cons <$> P.lowerChar <*> (T.pack <$> P.many (P.alphaNumChar <|> P.char '\''))
 
 uidentifier :: Parser Text
 uidentifier = (lexeme . P.try) (ident >>= checkReserved)
     where
-        ident = (T.cons) <$> P.upperChar <*> (T.pack <$> P.many (P.alphaNumChar <|> P.char '\''))
+        ident = T.cons <$> P.upperChar <*> (T.pack <$> P.many (P.alphaNumChar <|> P.char '\''))
+
+ruleName :: Parser Text
+ruleName = (lexeme . P.try) ident
+    where
+        ident = T.intercalate "/" <$> P.sepBy1 (T.cons <$> P.lowerChar <*> (T.pack <$> P.many P.lowerChar)) (symbol "/")
 
 checkReserved :: Text -> Parser Text
 checkReserved i = if i `elem` reservedWords

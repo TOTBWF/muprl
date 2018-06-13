@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1c5b784d1d6ce230a0fbc99f15793c78b9a5a7fb609ff8cdd19a0a47e67ebc1c
+-- hash: b160a9b644091346a376e3c83b575816808a20398cc6c1f3ff85519d6902b753
 
 name:           muprl
 version:        0.1.0.0
@@ -37,6 +37,10 @@ library
       MuPRL.Refine.Judgement
       MuPRL.Refine.ProofState
       MuPRL.Refine.Rule
+      MuPRL.Refine.Rules.Equality
+      MuPRL.Refine.Rules.Function
+      MuPRL.Refine.Rules.Universe
+      MuPRL.Refine.Rules.Void
       MuPRL.Refine.Tactic
       MuPRL.Refine.Telescope
       MuPRL.Repl.MonadRepl

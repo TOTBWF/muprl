@@ -26,18 +26,15 @@ import qualified MuPRL.Refine.Rule as R
 import qualified MuPRL.Refine.Tactic as R
 
 
-rule :: (MonadRule m) => Parser (Rule m Judgement)
-rule = P.choice 
-    [ reserved "assumption" $> (R.mkRule R.assumption)
-    , reserved "intro" $> (mkRule R.intro)
-    ]
-
 tactic' :: (MonadRule m) => Parser (Tactic m Judgement)
 tactic' = P.choice
     [ reserved "id" $> R.idt
     , reserved "try" *> tactic
     , reserved "fail" $> R.fail "fail tactic invoked"
-    , R.rule <$> (reserved "rule" *> rule)
+    , reserved "intro" $> R.intro
+    , reserved "eqType" $> R.eqType
+    , R.many <$> (braces tactic <* symbol "*")
+    , R.rule <$> (reserved "rule" *> ruleName)
     ]
 
 multitactic :: (MonadRule m) => Parser (Tactic m (ProofState Judgement))
@@ -49,6 +46,7 @@ multitactic = P.choice
 operators :: (MonadRule m) => [[P.Operator Parser (Tactic m Judgement)]]
 operators =
     [ [ P.Postfix (symbol ";" *> (flip R.seq_ <$> multitactic)) ]
+    , [ P.InfixR (symbol "|" $> R.orElse)]
     ]
 
 tactic :: (MonadRule m) => Parser (Tactic m Judgement)

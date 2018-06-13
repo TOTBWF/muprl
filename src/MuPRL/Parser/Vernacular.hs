@@ -29,4 +29,4 @@ theorem :: (MonadRule m) => Parser (Vernacular m)
 theorem = reserved "Theorem" *> (Theorem <$> identifier <*> (colon *> term) <*> braces tactic)
 
 vernacular :: (MonadRule m) => Parser [Vernacular m]
-vernacular = P.many theorem
+vernacular = sc *> P.many theorem

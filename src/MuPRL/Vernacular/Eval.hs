@@ -22,7 +22,7 @@ data VernacularError
 
 instance Error VernacularError where
     errorText (TacticError e) = errorText e
-    errorText (UnprovedSubgoals js) = pretty "Unproved Subgoals: " <+> vcat (fmap pretty js)
+    errorText (UnprovedSubgoals js) = pretty "Unproved Subgoals: " <+> (align $ vsep (fmap pretty $ reverse js))
 
 evalVernacular :: (Fresh m) => Vernacular m -> m (Either VernacularError Term)
 evalVernacular (Theorem _ goal tac) = runExceptT $ do
