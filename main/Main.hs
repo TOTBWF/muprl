@@ -9,15 +9,16 @@ import qualified Data.Text.IO as T
 import Control.Monad.IO.Class
 import Data.Foldable (traverse_)
 
+import Options.Applicative
+
 import Unbound.Generics.LocallyNameless
 import Unbound.Generics.LocallyNameless.Fresh
 
 import MuPRL.Parser.Term (term)
 import MuPRL.Parser.Vernacular (vernacular)
-import MuPRL.Parser.Stack
+import MuPRL.Parser.Stack (runParser)
 import MuPRL.Error
 import MuPRL.PrettyPrint
-import MuPRL.Core.Term
 import qualified MuPRL.Refine.Telescope as Tl
 import MuPRL.Refine.ProofState
 import MuPRL.Refine.Judgement
@@ -28,8 +29,24 @@ import MuPRL.Vernacular.Eval
 import MuPRL.Repl.MonadRepl
 import MuPRL.Repl.Repl
 
+data Options = Options
+    { file :: FilePath
+    }
+
+options :: Parser Options
+options = Options
+    <$> argument str
+        (metavar "FILENAME"
+        <> help "the file to execute")
+
 main :: IO ()
-main = runReplT loop
+main = (\o -> runReplT $ execFile $ file o) =<< execParser opts
+    where
+        opts = info (options <**> helper)
+            (fullDesc
+            <> progDesc "check the file FILENAME"
+            <> header "μPRL")
+-- main = runReplT loop
 -- main = runReplT $ execFile "samples/id.mprl"
 
 loop :: Repl ()
