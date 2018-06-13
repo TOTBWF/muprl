@@ -15,6 +15,7 @@ import qualified Data.Text as T
 
 import MuPRL.Parser.Lexer
 import MuPRL.Parser.Stack
+import MuPRL.Parser.Term (term)
 
 import MuPRL.Core.Term
 
@@ -29,12 +30,13 @@ import qualified MuPRL.Refine.Tactic as R
 tactic' :: (MonadRule m) => Parser (Tactic m Judgement)
 tactic' = P.choice
     [ reserved "id" $> R.idt
-    , reserved "try" *> tactic
+    , R.try <$> (reserved "try" *> tactic)
     , reserved "fail" $> R.fail "fail tactic invoked"
     , reserved "intro" $> R.intro
     , reserved "eqType" $> R.eqType
-    , R.many <$> (braces tactic <* symbol "*")
+    , R.use <$> (reserved "use" *> term)
     , R.rule <$> (reserved "rule" *> ruleName)
+    , braces tactic
     ]
 
 multitactic :: (MonadRule m) => Parser (Tactic m (ProofState Judgement))
@@ -45,8 +47,9 @@ multitactic = P.choice
 
 operators :: (MonadRule m) => [[P.Operator Parser (Tactic m Judgement)]]
 operators =
-    [ [ P.Postfix (symbol ";" *> (flip R.seq_ <$> multitactic)) ]
+    [ [ P.Prefix (symbol "*" $> R.many)]
     , [ P.InfixR (symbol "|" $> R.orElse)]
+    , [ P.Postfix (symbol ";" *> (flip R.seq_ <$> multitactic)) ]
     ]
 
 tactic :: (MonadRule m) => Parser (Tactic m Judgement)

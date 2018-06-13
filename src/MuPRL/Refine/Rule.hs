@@ -27,7 +27,8 @@ data RuleError
     = UniverseMismatch Int Int
     | TypeMismatch Term Term
     | NotInContext Term
-    | RuleMismatch Text Term
+    | RuleMismatch Text Judgement
+    | GoalMismatch Text Term
     | NoSuchRule Text
 
 instance Error RuleError where
@@ -35,6 +36,7 @@ instance Error RuleError where
     errorText (TypeMismatch t1 t2) = pretty "Type Mismatch:" <+> pretty t1 <+> pretty "and" <+> pretty t2
     errorText (NotInContext t) = pretty "Not In Context:" <+> pretty t
     errorText (RuleMismatch t j) = pretty "Rule Mismatch:" <+> pretty t <+> pretty j
+    errorText (GoalMismatch t j) = pretty "Goal Mismatch:" <+> pretty t <+> pretty j
     errorText (NoSuchRule t) = pretty "No Such Rule:" <+> pretty t
 
 
@@ -65,20 +67,27 @@ wellFormed s t = do
 
 
 ruleMismatch :: (MonadRule m, MonadError RuleError m) => Text -> Judgement -> m a
-ruleMismatch t (Judgement bnd) = do
-    (_, goal) <- unbind bnd
-    throwError $ RuleMismatch t goal
+ruleMismatch t jdg = throwError $ RuleMismatch t jdg
+    -- (_, goal) <- unbind bnd
+    -- throwError $ RuleMismatch t goal
 
 mkRule :: (MonadRule m) => (Telescope Term -> Term -> ExceptT RuleError m (ProofState Judgement)) -> Rule m Judgement
 mkRule f = Rule $ \(Judgement bnd) -> do
     (hyps, goal) <- unbind bnd
     f hyps goal
 
-ruleError :: (MonadRule m) => RuleError -> (Telescope Term -> Term -> ExceptT RuleError m (ProofState Judgement))
-ruleError err = \_ _ -> throwError err
+ruleError :: (MonadRule m) => RuleError -> Rule m Judgement
+ruleError err = mkRule $ \_ _ -> throwError err
 
-assumption :: (MonadRule m, MonadError RuleError m) => Telescope Term -> Term -> m (ProofState Judgement)
-assumption hyp goal =
+assumption :: (MonadRule m) => Rule m Judgement
+assumption = mkRule $ \hyp goal -> 
         case search goal hyp of
             Just (x,_) -> return (Tl.empty |> Var x)
             Nothing -> throwError $ NotInContext goal
+
+-- | Prove a proposition by providing evidence
+evidence :: (MonadRule m) => Term -> Rule m Judgement
+evidence t = mkRule $ \hyp g -> do
+    let t' = Tl.withTelescope hyp t
+    (g', _) <- goal (hyp |- (Equals t' t' g))
+    return ((Tl.empty @> g') |> t')

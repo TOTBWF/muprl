@@ -55,9 +55,10 @@ ruleToTac r = Tactic $ \j -> do
 
 -- | Creates a tactic that applies the rule with the given name
 rule :: (MonadRule m) => Text -> Tactic m Judgement
-rule name = ruleToTac $ mkRule $ case name of
+rule name = ruleToTac $ case name of
     "eq/intro" -> Equality.intro
     "fun/intro" -> Function.intro
+    "fun/eq" -> Function.eq
     "fun/eqtype" -> Function.eqType
     "universe/eqtype" -> Universe.eqType
     "void/eqtype" -> Void.eqType
@@ -65,10 +66,10 @@ rule name = ruleToTac $ mkRule $ case name of
     t -> ruleError $ NoSuchRule t
 
 -- | Helper function for constructing tactics that examine the goal
-goalTactic :: (Fresh m) => (Term -> (Telescope Term -> Term -> ExceptT RuleError m (ProofState Judgement))) -> Tactic m Judgement
+goalTactic :: (Fresh m) => (Term -> Rule m Judgement) -> Tactic m Judgement
 goalTactic sel = Tactic $ \j@(Judgement bnd) -> do
     (_, goal) <- unbind bnd
-    let (Tactic tac) = ruleToTac $ mkRule $ sel goal
+    let (Tactic tac) = ruleToTac $ sel goal
     tac j
 
 -- | Looks at the goal, and selects the proper introduction rule to use
@@ -76,7 +77,7 @@ intro :: (Fresh m) => Tactic m Judgement
 intro = goalTactic $ \case
     (Equals (Var _) (Var _) _) -> Equality.intro
     (Pi _) -> Function.intro
-    goal -> ruleError $ RuleMismatch "intro" goal
+    goal -> ruleError $ GoalMismatch "intro" goal
 
 -- | Looks at the goal, and selects the proper eqType rule
 eqType :: (Fresh m) => Tactic m Judgement
@@ -84,7 +85,7 @@ eqType = goalTactic $ \case
     (Pi _) -> Function.eqType
     (Universe _) -> Universe.eqType
     Void -> Void.eqType
-    goal -> ruleError $ RuleMismatch "eqtype" goal
+    goal -> ruleError $ GoalMismatch "eqtype" goal
 
     
 -- | Identity Tactic
@@ -142,3 +143,11 @@ each ts = Tactic $ \(ProofState bnd) -> do
 
 many :: (Fresh m) => Tactic m Judgement -> Tactic m Judgement
 many t = try (t `then_` (many t))
+
+-- -- | Use a term that takes its free variables from the hypotheses as evidence
+use :: (Fresh m) => Term -> Tactic m Judgement
+use = ruleToTac . evidence
+-- use t = Tactic $ \(Judgement bnd) -> do
+--     (hyps, goal) <- unbind bnd
+--     let t' = Tl.withTelescope hyps t
+--     undefined

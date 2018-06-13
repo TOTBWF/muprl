@@ -11,6 +11,7 @@ import MuPRL.Refine.Telescope (Telescope, (@>))
 import MuPRL.Refine.Rule
 
 -- | Type equality for void
-eqType :: (MonadRule m, MonadError RuleError m) => Telescope Term -> Term -> m (ProofState Judgement)
-eqType _ (Equals Void Void (Universe _)) = return axiomatic
-eqType hyps goal = ruleMismatch "void/eqtype" (hyps |- goal)
+eqType :: (MonadRule m) => Rule m Judgement
+eqType = mkRule $ \hyp -> \case
+    (Equals Void Void (Universe _)) -> return axiomatic
+    goal -> ruleMismatch "void/eqtype" (hyp |- goal)

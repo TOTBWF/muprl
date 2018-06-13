@@ -14,6 +14,7 @@ import MuPRL.Refine.Telescope (Telescope, (@>))
 import MuPRL.Refine.Rule
 
 -- | Kind of a funky introduction rule, looks up bindings in the telescope
-intro :: (MonadRule m, MonadError RuleError m) => Telescope Term -> Term -> m (ProofState Judgement)
-intro hyp (Equals (Var x) (Var x') t) | x == x' && Tl.anyKey (\y t' -> y == x && aeq t t') hyp = return axiomatic
-intro hyps goal = ruleMismatch "eq/intro" (hyps |- goal)
+intro :: (MonadRule m) => Rule m Judgement
+intro = mkRule $ \hyp -> \case 
+    (Equals (Var x) (Var x') t) | x == x' && Tl.anyKey (\y t' -> y == x && aeq t t') hyp -> return axiomatic
+    goal -> ruleMismatch "eq/intro" (hyp |- goal)

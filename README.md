@@ -59,11 +59,11 @@ Theorem i : (a:universe 0) -> (x:a) -> a {
 }
 ```
 
-Also, we seem to be applying the `intro` rule quite a few times in a row, so we can use `{intro}*` tactic to run the `intro` tactic repeatedly until it fails.
+Also, we seem to be applying the `intro` rule quite a few times in a row, so we can use the `*` tactic to run the `intro` tactic repeatedly until it fails.
 
 ```
 Theorem i : (a:universe 0) -> (x:a) -> a {
-    {intro}*; [rule assumption, rule universe/eqtype]
+    *intro; [rule assumption, rule universe/eqtype]
 }
 ```
 
