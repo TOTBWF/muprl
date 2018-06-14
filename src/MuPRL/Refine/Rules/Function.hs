@@ -48,3 +48,16 @@ eqType = mkRule $ \hyp -> \case
         (bGoal, _) <- goal (Tl.extend x a hyp |- (Equals b b u))
         return ((Tl.empty @> bGoal @> aGoal) |> Axiom)
     goal -> ruleMismatch "fun/eqtype" (hyp |- goal)
+
+elim :: (MonadRule m) => Name Term -> Rule m Judgement
+elim f = mkRule $ \hyp g ->
+    case Tl.findKey f hyp of
+        Just (Pi bnd) -> do
+            ((_, unembed -> a), b) <- unbind bnd
+            (aGoal, aHole) <- goal (hyp |- a)
+            f' <- fresh f
+            (bGoal, bHole) <- goal (hyp @> (f',b) |- g)
+            let extract = subst f' (App (Var f) aHole) bHole
+            return (Tl.empty @> bGoal @> aGoal |> extract)
+        Just t -> throwError $ ElimMismatch "fun/elim" t
+        Nothing -> throwError $ UndefinedVariable f

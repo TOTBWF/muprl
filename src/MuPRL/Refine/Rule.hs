@@ -27,16 +27,20 @@ data RuleError
     = UniverseMismatch Int Int
     | TypeMismatch Term Term
     | NotInContext Term
+    | UndefinedVariable Var
     | RuleMismatch Text Judgement
     | GoalMismatch Text Term
+    | ElimMismatch Text Term
     | NoSuchRule Text
 
 instance Error RuleError where
     errorText (UniverseMismatch i j) = pretty "Universe Mismatch:" <+> pretty i <+> pretty "and" <+> pretty j
     errorText (TypeMismatch t1 t2) = pretty "Type Mismatch:" <+> pretty t1 <+> pretty "and" <+> pretty t2
+    errorText (UndefinedVariable x) = pretty "Undefined Variable:" <+> pretty x
     errorText (NotInContext t) = pretty "Not In Context:" <+> pretty t
     errorText (RuleMismatch t j) = pretty "Rule Mismatch:" <+> pretty t <+> pretty j
     errorText (GoalMismatch t j) = pretty "Goal Mismatch:" <+> pretty t <+> pretty j
+    errorText (ElimMismatch t j) = pretty "Elim Mismatch:" <+> pretty t <+> pretty j
     errorText (NoSuchRule t) = pretty "No Such Rule:" <+> pretty t
 
 

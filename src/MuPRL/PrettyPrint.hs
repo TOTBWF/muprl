@@ -10,59 +10,10 @@ import Unbound.Generics.LocallyNameless.LFresh
 
 import Data.Text.Prettyprint.Doc as P
 
+-- Because of the way we handle bindings, we need to be able to ensure that all
+-- of the variables are "locally fresh" when we perform the unbinding
+-- This means that we need to wrap the entire prettyprint computation
+-- inside of a local freshness monad. We then run that computation
+-- when we no longer need local freshness
 class PrettyM a where
     prettyM :: a -> LFreshM (Doc ann)
-
--- import MuPRL.Syntax
--- import MuPRL.LCF
--- import MuPRL.Rules
-
--- class Pretty p where
---     ppr :: p -> LFreshM Doc
-
--- instance Pretty Int where
---     ppr = return . integer. toInteger
-
--- instance Typeable a => Pretty (Name a) where
---     ppr = return . text . name2String
-
--- instance Pretty Term where
---     ppr (Var x) = ppr x
---     ppr Void = return $ text "void"
---     ppr Unit = return $ text "unit"
---     ppr Nil = return $ text "nil"
---     ppr (Universe k) = do
---         pk <- ppr k
---         return $ text "universe" <+> pk
---     ppr (App f a) = do
---         pf <- ppr f
---         pa <- ppr a
---         return $ pf <+> pa
---     ppr (Lambda bnd) = 
---             lunbind bnd $ \(x,b) -> do
---                 px <- ppr x
---                 pb <- ppr b
---                 return $ text "\\" <> px <> text "." <+> pb 
---     ppr (Pi bnd) =
---             lunbind bnd $ \((x,t),b) -> do
---                 px <- ppr x
---                 pt <- ppr (unembed t)
---                 pb <- ppr b
---                 return $ parens (px <> text ":" <> pt) <+> text "->" <+> pb
---     ppr (Equals t1 t2 typ) = do
---         pt1 <- ppr t1
---         pt2 <- ppr t2
---         ptyp <- ppr typ
---         return $ pt1 <+> text "=" <+> pt2 <+> text "in" <+> ptyp
---     ppr Axiom = return $ text "axiom"
-
-
--- instance Pretty Judgement where
---     ppr (ctx :>> t) = do
---         pctx <- foldM (\p (x,t') -> do
---                 px <- ppr x
---                 pt' <- ppr t'
---                 return $ px <> text ":" <> pt' <> text "," <+> p) (text "") ctx
---         pt <- ppr t
---         return $ pctx <> text "H >>" <+> pt
-
