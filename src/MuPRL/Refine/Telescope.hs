@@ -90,6 +90,12 @@ foldl :: (Typeable a, Alpha a) => (b -> a -> b) -> b -> Telescope a -> b
 foldl _ b Empty = b
 foldl f b (SnocHyp (unrebind -> (tl, (_, unembed -> xt)))) = foldl f (f b xt) tl
 
+foldlM :: (Typeable a, Alpha a, Monad m) => (b -> a -> m b) -> b -> Telescope a -> m b
+foldlM _ b Empty = return b
+foldlM f b (SnocHyp (unrebind -> (tl, (_, unembed -> xt)))) = do
+    b' <- f b xt
+    foldlM f b' tl
+
 foldrWithKey :: (Typeable a, Alpha a) => (Name Term -> a -> b -> b) -> b -> Telescope a -> b
 foldrWithKey _ b Empty = b
 foldrWithKey f b (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) = f x xt (foldrWithKey f b tl)

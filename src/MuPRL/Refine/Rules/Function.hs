@@ -54,13 +54,30 @@ eqType = mkRule $ \hyp -> \case
 elim :: (MonadRule m) => Name Term -> Rule m Judgement
 elim f = mkRule $ \hyp g ->
     case Tl.lookupKey f hyp of
-        Just (Pi bnd) -> do
-            ((_, unembed -> a), b) <- unbind bnd
-            (aGoal, aHole) <- goal (hyp |- a)
-            f' <- fresh $ string2Name ((name2String f) ++ "'")
-            (bGoal, bHole) <- goal (hyp @> (f',b) |- g)
-            -- let extract = subst f' (App (Var f) aHole) bHole
+        Just p@(Pi _) -> do
+            -- The hard part about this is that 'x:a -> b -> c -> d' should have
+            -- '(((x _a) _b) _c)' as it's extract, and the way we handle substitutions WRT metavariables is bad
+            (goals, _, extract, outputTy) <- elimArgs (Tl.empty, hyp, (Var f)) p
+            -- This is where things get tricky. We want to be able to show that
+            -- given a term of type 'd', we can prove our original goal
+            x <- wildcardName
+            (mGoal, mHole) <- goal (hyp @> (x,outputTy) |- g)
+            return (goals @> mGoal |> (subst x extract mHole))
+            -- (aGoal, aHole) <- goal (hyp |- a)
+            -- f' <- fresh $ string2Name ((name2String f) ++ "'")
+            -- (bGoal, bHole) <- goal (hyp @> (f',b) |- g)
+            -- let extract = (App (Var f) aHole)
             -- trace (show extract) return ()
-            return (Tl.empty @> bGoal @> aGoal |> (App bHole aHole))
+            -- return (Tl.empty @> bGoal @> aGoal |> (App bHole aHole))
         Just t -> throwError $ ElimMismatch "fun/elim" t
         Nothing -> throwError $ UndefinedVariable f
+
+    where
+        elimArgs :: (MonadRule m) => (Telescope Judgement, Telescope Term, Term) -> Term -> m (Telescope Judgement, Telescope Term, Term, Term)
+        elimArgs (goals, hyp, extract) (Pi bnd) = do
+            -- This just recurses down the function type, adding goals and building up our extract term
+            ((x, unembed -> a), b) <- unbind bnd
+            (aGoal, aHole) <- goal (hyp |- a)
+            let extract' = (App extract aHole)
+            elimArgs (goals @> aGoal, hyp @> (x,a), extract') b
+        elimArgs (goals, hyp, extract) t = return (goals, hyp, extract, t)
