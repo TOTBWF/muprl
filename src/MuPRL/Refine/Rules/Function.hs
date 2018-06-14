@@ -13,6 +13,8 @@ import qualified MuPRL.Refine.Telescope as Tl
 import MuPRL.Refine.Telescope (Telescope, (@>))
 import MuPRL.Refine.Rule
 
+import Debug.Trace
+
 -- | Introduction rule for functions
 intro :: (MonadRule m) => Rule m Judgement
 intro = mkRule $ \hyp -> \case
@@ -55,9 +57,10 @@ elim f = mkRule $ \hyp g ->
         Just (Pi bnd) -> do
             ((_, unembed -> a), b) <- unbind bnd
             (aGoal, aHole) <- goal (hyp |- a)
-            f' <- fresh f
+            f' <- fresh $ string2Name ((name2String f) ++ "'")
             (bGoal, bHole) <- goal (hyp @> (f',b) |- g)
-            let extract = subst f' (App (Var f) aHole) bHole
-            return (Tl.empty @> bGoal @> aGoal |> extract)
+            -- let extract = subst f' (App (Var f) aHole) bHole
+            -- trace (show extract) return ()
+            return (Tl.empty @> bGoal @> aGoal |> (App bHole aHole))
         Just t -> throwError $ ElimMismatch "fun/elim" t
         Nothing -> throwError $ UndefinedVariable f

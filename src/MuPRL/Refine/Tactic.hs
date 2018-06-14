@@ -80,7 +80,6 @@ goalTactic sel = Tactic $ \j@(Judgement bnd) -> do
 hypTactic :: (Fresh m) => (Telescope Term -> Rule m Judgement) -> Tactic m Judgement
 hypTactic sel = Tactic $ \j@(Judgement bnd) -> do
     (hyp, _) <- unbind bnd
-    trace (show hyp) return ()
     let (Tactic tac) = ruleToTac $ sel hyp
     tac j
 

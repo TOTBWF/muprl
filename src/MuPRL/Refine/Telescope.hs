@@ -66,9 +66,10 @@ find _ Empty = Nothing
 find p (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) | p xt = Just (x, xt)
                                                         | otherwise = find p tl
 
+{-# WARNING lookupKey "Revert back the comparison to regular equality" #-}
 lookupKey :: (Typeable t, Alpha t) => Name Term -> Telescope t -> Maybe t
 lookupKey _ Empty = Nothing
-lookupKey n (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) | x == n = Just xt
+lookupKey n (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) | (name2String x) == (name2String n) = Just xt
                                                              | otherwise = lookupKey n tl
 
 anyKey :: (Typeable t, Alpha t) => (Name Term -> t -> Bool) -> Telescope t -> Bool
