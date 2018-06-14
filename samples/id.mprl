@@ -7,7 +7,6 @@
 -- }
 -- 
 Theorem s : (a:universe 0) -> (b:universe 0) -> (c:universe 0) -> (x:a -> b -> c) -> (y:a -> b) -> (z:a) -> c {
-    *intro; 
-    {try {rule universe/eqtype | *{rule fun/eqtype}; rule eq/intro}};
-    use (x z (y z))
+    *intro;
+    {try {rule universe/eqtype | *{rule fun/eqtype}; rule eq/intro}}; elim x
 }

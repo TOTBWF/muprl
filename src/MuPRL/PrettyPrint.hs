@@ -10,6 +10,7 @@ import Unbound.Generics.LocallyNameless.LFresh
 
 import Data.Text.Prettyprint.Doc as P
 
+
 -- Because of the way we handle bindings, we need to be able to ensure that all
 -- of the variables are "locally fresh" when we perform the unbinding
 -- This means that we need to wrap the entire prettyprint computation

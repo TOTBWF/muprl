@@ -67,7 +67,10 @@ instance PrettyM Term where
     prettyM (Pi bnd) = lunbind bnd $ \((x,unembed -> t), b) -> do
         pt <- prettyM t
         pb <- prettyM b
-        return $ parens (pretty x <> pretty ":" <> pt) <+> pretty "->" <+> pb
+        let pa = if (name2String x) == "_" 
+            then pt 
+            else parens (pretty x <> pretty ":" <> pt)
+        return $ pa <+> pretty "->" <+> pb
     prettyM (App f a) = do
         pf <- prettyM f
         pa <- prettyM a

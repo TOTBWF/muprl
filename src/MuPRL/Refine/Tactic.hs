@@ -8,6 +8,7 @@ import Unbound.Generics.LocallyNameless
 import Unbound.Generics.LocallyNameless.Fresh
 
 import Data.Text (Text)
+import qualified Data.Text as T
 
 import qualified MuPRL.Refine.Telescope as Tl
 import MuPRL.Refine.Telescope (Telescope, (@>))
@@ -24,6 +25,8 @@ import qualified MuPRL.Refine.Rules.Equality as Equality
 import qualified MuPRL.Refine.Rules.Function as Function
 import qualified MuPRL.Refine.Rules.Universe as Universe
 import qualified MuPRL.Refine.Rules.Void as Void
+
+import Debug.Trace
 
 data TacticError 
     = RuleError RuleError
@@ -53,6 +56,7 @@ ruleToTac r = Tactic $ \j -> do
         Left e -> throwError $ RuleError e
         Right r -> return r
 
+-- TODO: Add support for directly invoking elimination rules
 -- | Creates a tactic that applies the rule with the given name
 rule :: (MonadRule m) => Text -> Tactic m Judgement
 rule name = ruleToTac $ case name of
@@ -72,6 +76,14 @@ goalTactic sel = Tactic $ \j@(Judgement bnd) -> do
     let (Tactic tac) = ruleToTac $ sel goal
     tac j
 
+-- | Helper function for constructing tactics that examine the hypotheses
+hypTactic :: (Fresh m) => (Telescope Term -> Rule m Judgement) -> Tactic m Judgement
+hypTactic sel = Tactic $ \j@(Judgement bnd) -> do
+    (hyp, _) <- unbind bnd
+    trace (show hyp) return ()
+    let (Tactic tac) = ruleToTac $ sel hyp
+    tac j
+
 -- | Looks at the goal, and selects the proper introduction rule to use
 intro :: (Fresh m) => Tactic m Judgement
 intro = goalTactic $ \case
@@ -87,6 +99,17 @@ eqType = goalTactic $ \case
     Void -> Void.eqType
     goal -> ruleError $ GoalMismatch "eqtype" goal
 
+-- | Looks at the goal, and selects the proper elimination rule
+elim :: (Fresh m) => Text -> Tactic m Judgement
+elim x = hypTactic $ \hyp -> 
+    let x' = string2Name $ T.unpack x
+    in case Tl.lookupKey x' hyp of
+        (Just (Pi _)) -> Function.elim x'
+        (Just goal) -> ruleError $ ElimMismatch "elim" goal
+        Nothing -> ruleError $ UndefinedVariable (s2n $ T.unpack x)
+    -- (hyp, goal) <- unbind bnd
+    -- case Tl.findKey x hyp of
+    --     Nothing -> ruleError $ UndefinedVariable x
     
 -- | Identity Tactic
 idt :: (Fresh m) => Tactic m Judgement

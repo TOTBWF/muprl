@@ -15,7 +15,7 @@ import qualified Data.Text as T
 
 import MuPRL.Parser.Lexer
 import MuPRL.Parser.Stack
-import MuPRL.Parser.Term (term)
+import MuPRL.Parser.Term (term, variable)
 
 import MuPRL.Core.Term
 
@@ -26,6 +26,7 @@ import MuPRL.Refine.Tactic (Tactic)
 import qualified MuPRL.Refine.Rule as R
 import qualified MuPRL.Refine.Tactic as R
 
+-- rule :: (MonadRule m) => Parser (Tactic m Judgement)
 
 tactic' :: (MonadRule m) => Parser (Tactic m Judgement)
 tactic' = P.choice
@@ -34,6 +35,8 @@ tactic' = P.choice
     , reserved "fail" $> R.fail "fail tactic invoked"
     , reserved "intro" $> R.intro
     , reserved "eqType" $> R.eqType
+    , R.elim <$> (reserved "elim" *> identifier)
+    -- , reserved "elim" $> R.eqType
     , R.use <$> (reserved "use" *> term)
     , R.rule <$> (reserved "rule" *> ruleName)
     , braces tactic

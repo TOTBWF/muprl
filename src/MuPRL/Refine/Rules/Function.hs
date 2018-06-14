@@ -20,7 +20,7 @@ intro = mkRule $ \hyp -> \case
         ((x, unembed -> a), bx) <- unbind bnd
         -- We first need to check the well formedness of 'a'
         (wGoal, _) <- wellFormed hyp a
-        (bGoal, body) <- goal (Tl.extend x a hyp |- bx)
+        (bGoal, body) <- goal (hyp @> (x, a) |- bx)
         return ((Tl.empty @> wGoal @> bGoal) |> lambda x body)
     goal -> ruleMismatch "fun/intro" (hyp |- goal)
 
@@ -35,7 +35,7 @@ eq = mkRule $ \hyp -> \case
         let body1' = subst x (Var z) body1
         let body2' = subst y (Var z) body2
         (wGoal, _) <- wellFormed hyp a
-        (bodyGoal, _) <- goal (Tl.extend z a hyp |- (Equals body1' body2' b))
+        (bodyGoal, _) <- goal (hyp @> (z, a) |- (Equals body1' body2' b))
         return (Tl.empty @> wGoal @> bodyGoal |> Axiom)
     goal -> ruleMismatch "fun/eq" (hyp |- goal)
 
@@ -45,13 +45,13 @@ eqType = mkRule $ \hyp -> \case
     (Equals (Pi bnd1) (Pi bnd2) u@(Universe k)) | aeq bnd1 bnd2 -> do
         ((x, unembed -> a), b) <- unbind bnd1
         (aGoal, _) <- goal (hyp |- (Equals a a u))
-        (bGoal, _) <- goal (Tl.extend x a hyp |- (Equals b b u))
+        (bGoal, _) <- goal (hyp @> (x,a) |- (Equals b b u))
         return ((Tl.empty @> bGoal @> aGoal) |> Axiom)
     goal -> ruleMismatch "fun/eqtype" (hyp |- goal)
 
 elim :: (MonadRule m) => Name Term -> Rule m Judgement
 elim f = mkRule $ \hyp g ->
-    case Tl.findKey f hyp of
+    case Tl.lookupKey f hyp of
         Just (Pi bnd) -> do
             ((_, unembed -> a), b) <- unbind bnd
             (aGoal, aHole) <- goal (hyp |- a)

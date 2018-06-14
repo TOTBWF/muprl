@@ -6,6 +6,9 @@ import qualified Prelude as P
 
 import Control.Monad.Reader
 
+import Data.Text (Text)
+import qualified Data.Text as T
+
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 
@@ -54,7 +57,7 @@ concat :: (Typeable t, Alpha t) => Telescope t -> Telescope t -> Telescope t
 concat tl1 Empty = tl1
 concat tl1 (SnocHyp (unrebind -> (tl2, (x, unembed -> xt)))) = SnocHyp (rebind (concat tl1 tl2) (x, embed xt))
 
--- | Infix, flipped, uncurried version of extend extend
+-- | Infix, flipped, uncurried version of extend
 (@>) :: (Typeable t, Alpha t) => Telescope t -> (Name Term, t) -> Telescope t
 tl @> (x, xt) = extend x xt tl
 
@@ -63,10 +66,10 @@ find _ Empty = Nothing
 find p (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) | p xt = Just (x, xt)
                                                         | otherwise = find p tl
 
-findKey :: (Typeable t, Alpha t) => Name Term -> Telescope t -> Maybe t
-findKey _ Empty = Nothing
-findKey n (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) | x == n = Just xt
-                                                           | otherwise = findKey n tl
+lookupKey :: (Typeable t, Alpha t) => Name Term -> Telescope t -> Maybe t
+lookupKey _ Empty = Nothing
+lookupKey n (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) | x == n = Just xt
+                                                             | otherwise = lookupKey n tl
 
 anyKey :: (Typeable t, Alpha t) => (Name Term -> t -> Bool) -> Telescope t -> Bool
 anyKey _ Empty = False
@@ -119,7 +122,6 @@ toList = foldlWithKey (\xs x xt -> (x,xt):xs) []
 
 unzip :: (Typeable a, Typeable b, Alpha a, Alpha b) => Telescope (a,b) -> (Telescope a, Telescope b)
 unzip = foldrWithKey (\x (a, b) (ta, tb) -> (extend x a ta, extend x b tb)) (empty, empty)
-
 
 {-# WARNING withTelescope "This may not be correct, use with caution" #-}
 withTelescope :: (Subst Term t) => Telescope Term -> t -> t

@@ -36,7 +36,7 @@ data RuleError
 instance Error RuleError where
     errorText (UniverseMismatch i j) = pretty "Universe Mismatch:" <+> pretty i <+> pretty "and" <+> pretty j
     errorText (TypeMismatch t1 t2) = pretty "Type Mismatch:" <+> pretty t1 <+> pretty "and" <+> pretty t2
-    errorText (UndefinedVariable x) = pretty "Undefined Variable:" <+> pretty x
+    errorText (UndefinedVariable x) = pretty "Undefined Variable:" <+> pretty x <+> (pretty $ show x)
     errorText (NotInContext t) = pretty "Not In Context:" <+> pretty t
     errorText (RuleMismatch t j) = pretty "Rule Mismatch:" <+> pretty t <+> pretty j
     errorText (GoalMismatch t j) = pretty "Goal Mismatch:" <+> pretty t <+> pretty j
