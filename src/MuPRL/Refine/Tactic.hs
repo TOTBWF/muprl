@@ -43,7 +43,7 @@ newtype Tactic m a = Tactic { unTactic :: a -> TacticT m (ProofState a) }
 runTactic :: (Monad m) => Judgement -> Tactic m Judgement -> m (Either TacticError (ProofState Judgement))
 runTactic j (Tactic t) = runExceptT (t j)
 
-applyTac :: (Fresh m) => Tactic m Judgement -> Judgement -> ExceptT TacticError m (Telescope Judgement, Term)
+applyTac :: (Fresh m) => Tactic m Judgement -> Judgement -> ExceptT TacticError m (Telescope Extract Judgement, Extract)
 applyTac (Tactic t) j = do
     (ProofState s) <- t j
     unbind s
@@ -77,7 +77,7 @@ goalTactic sel = Tactic $ \j@(Judgement bnd) -> do
     tac j
 
 -- | Helper function for constructing tactics that examine the hypotheses
-hypTactic :: (Fresh m) => (Telescope Term -> Rule m Judgement) -> Tactic m Judgement
+hypTactic :: (Fresh m) => (Telescope Term Term -> Rule m Judgement) -> Tactic m Judgement
 hypTactic sel = Tactic $ \j@(Judgement bnd) -> do
     (hyp, _) <- unbind bnd
     let (Tactic tac) = ruleToTac $ sel hyp
@@ -152,10 +152,10 @@ thenEach t1 ts = seq_ t1 (each ts)
 each :: forall m. (Fresh m) => [Tactic m Judgement] -> Tactic m (ProofState Judgement)
 each ts = Tactic $ \(ProofState bnd) -> do
     (goals, extract) <- unbind bnd
-    (_, s) <- Tl.foldrMWithKey applyTacs (reverse ts, Tl.empty) goals
+    (_, s) <- Tl.foldrMWithKey applyTacs (ts, Tl.empty) goals
     return (s |> extract)
     where
-        applyTacs :: Name Term -> Judgement -> ([Tactic m Judgement], Telescope (ProofState Judgement)) -> ExceptT TacticError m ([Tactic m Judgement], Telescope (ProofState Judgement))
+        applyTacs :: MetaVar -> Judgement -> ([Tactic m Judgement], Telescope Extract (ProofState Judgement)) -> ExceptT TacticError m ([Tactic m Judgement], Telescope Extract (ProofState Judgement))
         applyTacs x xj (t:ts, tl) = do
             xs <- unTactic t xj
             return (ts, tl @> (x, xs))
@@ -167,8 +167,8 @@ many :: (Fresh m) => Tactic m Judgement -> Tactic m Judgement
 many t = try (t `then_` (many t))
 
 -- -- | Use a term that takes its free variables from the hypotheses as evidence
-use :: (Fresh m) => Term -> Tactic m Judgement
-use = ruleToTac . evidence
+-- use :: (Fresh m) => Term -> Tactic m Judgement
+-- use = ruleToTac . evidence
 -- use t = Tactic $ \(Judgement bnd) -> do
 --     (hyps, goal) <- unbind bnd
 --     let t' = Tl.withTelescope hyps t

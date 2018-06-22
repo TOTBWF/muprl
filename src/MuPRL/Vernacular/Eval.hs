@@ -18,19 +18,19 @@ import MuPRL.Vernacular.Syntax
 
 data VernacularError
     = TacticError TacticError
-    | UnprovedSubgoals [Judgement]
+    | UnprovedSubgoals [Judgement] (ProofState Judgement)
 
 instance Error VernacularError where
     errorText (TacticError e) = errorText e
-    errorText (UnprovedSubgoals js) = pretty "Unproved Subgoals:" <+> (align $ vsep (fmap pretty $ reverse js))
+    errorText (UnprovedSubgoals js e) = pretty "Unproved Subgoals:" <+> (align $ vsep $ ((fmap pretty $ reverse js) ++ [pretty e])) <+> (pretty $ show e)
 
-evalVernacular :: (Fresh m) => Vernacular m -> m (Either VernacularError Term)
+evalVernacular :: (Fresh m) => Vernacular m -> m (Either VernacularError Extract)
 evalVernacular (Theorem _ goal tac) = runExceptT $ do
     r <- lift $ runTactic (Tl.empty |- goal) tac
     case r of
         Left e -> throwError $ TacticError e
-        Right (ProofState bnd) -> do
+        Right p@(ProofState bnd) -> do
             (subgoals, extract) <- unbind bnd
             if Tl.null subgoals
                 then return extract
-                else throwError $ UnprovedSubgoals (fmap snd $ Tl.toList subgoals)
+                else throwError $ UnprovedSubgoals (snd <$> Tl.toList subgoals) p

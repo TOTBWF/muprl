@@ -33,18 +33,18 @@ runRefine r = do
         Left err -> outputStrLn err >> abort
         Right a -> return a
 
-refine :: Judgement -> Refine Term
+refine :: Judgement -> Refine Extract
 refine j = do
     (goals, extract) <- tryTactic j
     outputStr "Goals:" >> displayLn goals
     metavars <- solve goals
-    let extract' = Tl.withTelescope metavars extract
-    return extract'
+    -- let extract' = Tl.withTelescope metavars extract
+    return extract
     where
-        solve :: Telescope Judgement -> Refine (Telescope Term)
+        solve :: Telescope Extract Judgement -> Refine (Telescope Extract Extract)
         solve = Tl.traverse (local (+1) . refine)
 
-tryTactic :: Judgement -> Refine (Telescope Judgement, Term)
+tryTactic :: Judgement -> Refine (Telescope Extract Judgement, Extract)
 tryTactic j = catchError (unbind =<< unProofState <$> run j) (\err -> displayLn err >> tryTactic j)
     where
         run :: Judgement -> Refine (ProofState Judgement)

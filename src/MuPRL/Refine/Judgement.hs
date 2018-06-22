@@ -15,7 +15,7 @@ import qualified MuPRL.Refine.Telescope as Tl
 
 -- | A Judgement is a sequence of hypotheses (In the form of variables bound to terms), 
 -- | along with a goal that may take its variables from the hypotheses
-newtype Judgement = Judgement (Bind (Telescope Term) Term)
+newtype Judgement = Judgement (Bind (Telescope Term Term) Term)
     deriving (Show, Typeable, Generic)
 
 instance Alpha Judgement
@@ -31,10 +31,10 @@ instance PrettyM Judgement where
 instance Pretty Judgement where
     pretty = runLFreshM . prettyM
 
-(|-) :: Telescope Term -> Term -> Judgement
+(|-) :: Telescope Term Term -> Term -> Judgement
 hyps |- goal = Judgement (bind hyps goal)
 
-substJdg :: (Fresh m) => Name Term -> Term -> Judgement -> m Judgement
+substJdg :: (Fresh m) => MetaVar -> Extract -> Judgement -> m Judgement
 substJdg x b (Judgement bnd) = do
     (hyp, goal) <- unbind bnd
     let hyps' = Tl.map (subst x b) hyp

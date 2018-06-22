@@ -37,7 +37,7 @@ tactic' = P.choice
     , reserved "eqType" $> R.eqType
     , R.elim <$> (reserved "elim" *> identifier)
     -- , reserved "elim" $> R.eqType
-    , R.use <$> (reserved "use" *> term)
+    -- , R.use <$> (reserved "use" *> term)
     , R.rule <$> (reserved "rule" *> ruleName)
     , braces tactic
     ]

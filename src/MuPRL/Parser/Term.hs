@@ -45,7 +45,7 @@ appTerm = termExpr >>= \t ->
 
 operators :: [[P.Operator Parser Term]]
 operators = 
-    [ [ P.InfixR (pi <$> (symbol "->" *> wildcardName)) ]
+    [ [ P.InfixR (pi <$> (symbol "->" *> fresh (string2Name "_"))) ]
     ]
 
 term :: Parser Term

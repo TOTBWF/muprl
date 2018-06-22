@@ -63,21 +63,33 @@ The way around this is to use Dependent LCF, which allows us to partially constr
 -- | (where the variable references the extract of the judgement).
 -- | Each judgement can take free variables from earlier in the sequence.
 -- | It also contains an evidence term that takes its free variables from the sequence.
-newtype ProofState a = ProofState { unProofState :: (Bind (Telescope a) Term) }
+newtype ProofState a = ProofState { unProofState :: (Bind (Telescope Extract a) Extract) }
     deriving (Show, Generic)
 
 instance (Typeable a, Alpha a) => Alpha (ProofState a)
 
 instance (Subst Term t, Typeable t, Alpha t) => Subst Term (ProofState t)
 
-(|>) :: (Typeable a, Alpha a) => Telescope a -> Term -> ProofState a
+instance (PrettyM a, Typeable a, Alpha a) => PrettyM (ProofState a) where
+    prettyM (ProofState bnd) = lunbind bnd $ \(subgoals, Extract extract) -> do
+        psubgoals <- prettyM subgoals
+        pextract <- prettyM extract
+        return $ psubgoals <+> pretty "▹" <+> pextract
+
+instance (PrettyM a, Typeable a, Alpha a) => Pretty (ProofState a) where
+    pretty = runLFreshM . prettyM
+
+(|>>) :: (Typeable a, Alpha a) => Telescope Extract a -> Term -> ProofState a
+ctx |>> extract = ProofState (bind ctx (Extract extract))
+
+(|>) :: (Typeable a, Alpha a) => Telescope Extract a -> Extract -> ProofState a
 ctx |> extract = ProofState (bind ctx extract)
 
 -- ProofStates form a monad, but only over proper judgement types.
 return' :: (Fresh m) => Judgement -> m (ProofState Judgement)
 return' j = do
-    x <- metavar
-    return (Tl.singleton x j |> Var x)
+    x <- wildcard
+    return (Tl.singleton x j |> (Extract $ hole x))
 
 join' :: forall m. (Fresh m) => ProofState (ProofState Judgement) -> m (ProofState Judgement)
 join' (ProofState bnd) = do
@@ -86,7 +98,7 @@ join' (ProofState bnd) = do
     (goals', extract') <- Tl.foldlMWithKey applySubst (Tl.empty, extract) goals
     return (goals' |> extract')
     where
-        applySubst :: (Telescope Judgement, Term) -> Name Term -> ProofState Judgement -> m (Telescope Judgement, Term)   
+        applySubst :: (Telescope Extract Judgement, Extract) -> MetaVar -> ProofState Judgement -> m (Telescope Extract Judgement, Extract)   
         applySubst (tl, a) x (ProofState bnd) = do
             (tlx, ax) <- unbind bnd
             tl' <- Tl.traverse (substJdg x ax) tl
@@ -95,4 +107,4 @@ join' (ProofState bnd) = do
 
 -- | Helper function for axiomatic evidence
 axiomatic :: (Typeable a, Alpha a) => ProofState a
-axiomatic = Tl.empty |> Axiom
+axiomatic = Tl.empty |> (Extract Axiom)

@@ -38,21 +38,20 @@ instance Error RuleError where
     errorText (TypeMismatch t1 t2) = pretty "Type Mismatch:" <+> pretty t1 <+> pretty "and" <+> pretty t2
     errorText (UndefinedVariable x) = pretty "Undefined Variable:" <+> pretty x <+> (pretty $ show x)
     errorText (NotInContext t) = pretty "Not In Context:" <+> pretty t
-    errorText (RuleMismatch t j) = pretty "Rule Mismatch:" <+> pretty t <+> pretty j
+    errorText (RuleMismatch t j) = pretty "Rule Mismatch:" <+> vsep [pretty t <+> pretty j, pretty $ show j]
     errorText (GoalMismatch t j) = pretty "Goal Mismatch:" <+> pretty t <+> pretty j
     errorText (ElimMismatch t j) = pretty "Elim Mismatch:" <+> pretty t <+> pretty j
     errorText (NoSuchRule t) = pretty "No Such Rule:" <+> pretty t
 
 
-search :: Term -> Telescope Term -> Maybe (MetaVar, Term)
+search :: Term -> Telescope Term Term -> Maybe (Var, Term)
 search t tl = Tl.find (aeq t) tl
 
 -- | Given a judgement, create a goal/hole pair
-goal :: (Fresh m) => Judgement -> m ((MetaVar, Judgement), Extract)
-goal a = do
-    x <- metavar
-    -- TODO: In theory, 'x' can reference variables in the judgement context
-    return ((x, a), Var x)
+goal :: (Fresh m) => Judgement -> m ((MetaVar, Judgement), Term)
+goal j = do
+    x <- wildcard
+    return ((x, j), hole x)
 
 -- | Infers the universe level of a given term
 inferUniverse :: (Fresh m) => Term -> m Int
@@ -64,7 +63,7 @@ inferUniverse (Equals _ _ a) = inferUniverse a
 inferUniverse _ = return 0
 
 -- | Create a well-formedness goal
-wellFormed :: (Fresh m) => Telescope Term -> Term -> m ((MetaVar, Judgement), Extract)
+wellFormed :: (Fresh m) => Telescope Term Term -> Term -> m ((MetaVar, Judgement), Term)
 wellFormed s t = do
     k <- inferUniverse t
     goal (s |- Equals t t (Universe k))
@@ -75,7 +74,7 @@ ruleMismatch t jdg = throwError $ RuleMismatch t jdg
     -- (_, goal) <- unbind bnd
     -- throwError $ RuleMismatch t goal
 
-mkRule :: (MonadRule m) => (Telescope Term -> Term -> ExceptT RuleError m (ProofState Judgement)) -> Rule m Judgement
+mkRule :: (MonadRule m) => (Telescope Term Term -> Term -> ExceptT RuleError m (ProofState Judgement)) -> Rule m Judgement
 mkRule f = Rule $ \(Judgement bnd) -> do
     (hyps, goal) <- unbind bnd
     f hyps goal
@@ -86,12 +85,12 @@ ruleError err = mkRule $ \_ _ -> throwError err
 assumption :: (MonadRule m) => Rule m Judgement
 assumption = mkRule $ \hyp goal -> 
         case search goal hyp of
-            Just (x,_) -> return (Tl.empty |> Var x)
+            Just (x,_) -> return (Tl.empty |>> Var x)
             Nothing -> throwError $ NotInContext goal
 
 -- | Prove a proposition by providing evidence
-evidence :: (MonadRule m) => Term -> Rule m Judgement
-evidence t = mkRule $ \hyp g -> do
-    let t' = Tl.withTelescope hyp t
-    (g', _) <- goal (hyp |- (Equals t' t' g))
-    return ((Tl.empty @> g') |> t')
+-- evidence :: (MonadRule m) => Term -> Rule m Judgement
+-- evidence t = mkRule $ \hyp g -> do
+--     let t' = Tl.withTelescope hyp t
+--     (g', _) <- goal (hyp |- (Equals t' t' g))
+--     return ((Tl.empty @> g') |> t')
