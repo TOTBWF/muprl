@@ -10,8 +10,8 @@ import Unbound.Generics.LocallyNameless.Fresh
 import Data.Text (Text)
 import qualified Data.Text as T
 
-import qualified MuPRL.Refine.Telescope as Tl
-import MuPRL.Refine.Telescope (Telescope, (@>))
+import qualified MuPRL.Core.Telescope as Tl
+import MuPRL.Core.Telescope (Telescope, (@>))
 
 import MuPRL.Error
 import MuPRL.PrettyPrint

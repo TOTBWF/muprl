@@ -1,3 +1,7 @@
+Theorem test : (a:universe 0) -> universe 0 {
+    intro; [rule universe/eqtype, rule assumption]
+}
+
 -- Theorem i : (a:universe 0) -> (x:a) -> a {
 --     *intro; [rule universe/eqtype, rule assumption]
 -- }
@@ -13,9 +17,9 @@
 --     --; [rule assumption, elim y, rule assumption]
 -- }
 
-Theorem app : (a:universe 0) -> (b:universe 0) -> (f:a -> b) -> (x:a) -> b {
-    *intro;
-    {try {rule universe/eqtype | *{rule fun/eqtype}; rule eq/intro}};
-    elim f
-    --; [rule assumption, id]
-}
+-- Theorem app : (a:universe 0) -> (b:universe 0) -> (f:a -> b) -> (x:a) -> b {
+--     *intro;
+--     {try {rule universe/eqtype | *{rule fun/eqtype}; rule eq/intro}};
+--     elim f
+--     --; [rule assumption, id]
+-- }

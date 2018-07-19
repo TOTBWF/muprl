@@ -1,4 +1,4 @@
-module MuPRL.Refine.Telescope where
+module MuPRL.Core.Telescope where
 
 import Prelude hiding (foldr, foldl, map, concat, traverse)
 
@@ -20,8 +20,6 @@ import Data.Typeable (Typeable)
 
 import MuPRL.PrettyPrint
 
-import MuPRL.Core.Term
-
 -- | 'v' is the type that the meta-vars refer to, and t is the type actually stored inside the telescope
 data Telescope v t
     = Empty
@@ -30,7 +28,7 @@ data Telescope v t
 
 instance (Typeable t, Typeable v, Alpha t, Alpha v) => Alpha (Telescope v t)
 
-instance (Subst Term t) => Subst Term (Telescope v t)
+instance (Subst t1 t2) => Subst t1 (Telescope v t2)
 
 instance (PrettyM t, Typeable t, Typeable v, Alpha t, Alpha v) => PrettyM (Telescope v t) where
     prettyM tl = do

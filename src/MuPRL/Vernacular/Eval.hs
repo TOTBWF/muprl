@@ -9,7 +9,7 @@ import MuPRL.PrettyPrint
 import MuPRL.Error
 
 import MuPRL.Core.Term
-import qualified MuPRL.Refine.Telescope as Tl
+import qualified MuPRL.Core.Telescope as Tl
 import MuPRL.Refine.Judgement
 import MuPRL.Refine.ProofState
 import MuPRL.Refine.Tactic

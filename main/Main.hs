@@ -19,7 +19,7 @@ import MuPRL.Parser.Vernacular (vernacular)
 import MuPRL.Parser.Stack (runParser)
 import MuPRL.Error
 import MuPRL.PrettyPrint
-import qualified MuPRL.Refine.Telescope as Tl
+import qualified MuPRL.Core.Telescope as Tl
 import MuPRL.Refine.ProofState
 import MuPRL.Refine.Judgement
 import MuPRL.Refine.Tactic

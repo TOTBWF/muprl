@@ -11,14 +11,16 @@ import Data.Typeable (Typeable)
 
 import MuPRL.PrettyPrint
 
+import MuPRL.Core.Telescope (Telescope)
+import qualified MuPRL.Core.Telescope as Tl
+
 import Debug.Trace
 
 type Var = Name Term
 
 data Term
     = Var Var
-    -- | Hole MetaSubst MetaVar
-    | Hole Hole
+    | Hole MetaVar
     | Void
     | Axiom
     | Universe Int
@@ -34,34 +36,34 @@ newtype Extract = Extract { unExtract :: Term }
 
 type MetaVar = Name Extract
 
-data Hole 
-    = HoleVar [(Var, Term)] MetaVar
-    | FilledHole Term
-    deriving (Show, Generic, Typeable)
+-- data Hole 
+--     = HoleVar [(Var, Term)] MetaVar
+--     | FilledHole Term
+--     deriving (Show, Generic, Typeable)
 
 -- newtype MetaSubst = MetaSubst { metaSubst :: [(Var, Term)] }
 --     deriving (Show, Generic, Typeable)
 
 instance Alpha Term
 instance Alpha Extract
-instance Alpha Hole
+-- instance Alpha Hole
 -- instance Alpha MetaSubst
 
 instance Subst Term Term where
     isvar (Var x) = Just $ SubstName x
     isvar _ = Nothing
 
-instance Subst Term Hole where
-    subst x t (HoleVar vs mx) = HoleVar ((x,t):subst x t vs) mx
-    subst x t (FilledHole t') = FilledHole (subst x t t')
+-- instance Subst Term Hole where
+--     subst x t (HoleVar vs mx) = HoleVar ((x,t):subst x t vs) mx
+--     subst x t (FilledHole t') = FilledHole (subst x t t')
 
-    substs ts (HoleVar vs mx) = HoleVar (foldr (\(x,t) vs' -> (x,t):subst x t vs') vs ts) mx
-    substs ts (FilledHole t) = FilledHole (substs ts t)
+--     substs ts (HoleVar vs mx) = HoleVar (foldr (\(x,t) vs' -> (x,t):subst x t vs') vs ts) mx
+--     substs ts (FilledHole t) = FilledHole (substs ts t)
 
-instance Subst Extract Hole where
-    subst mx e (HoleVar vs mx') | mx == mx' = FilledHole (substs vs $ unExtract e)
-                                | otherwise = HoleVar (subst mx e vs) mx'
-    subst mx e (FilledHole t) = FilledHole (subst mx e t)
+-- instance Subst Extract Hole where
+--     subst mx e (HoleVar vs mx') | mx == mx' = FilledHole (substs vs $ unExtract e)
+--                                 | otherwise = HoleVar (subst mx e vs) mx'
+--     subst mx e (FilledHole t) = FilledHole (subst mx e t)
 -- instance Subst Term MetaSubst where
 --     subst x t (MetaSubst vs) = MetaSubst ((x,t):subst x t vs)
 --     substs ss (MetaSubst vs) = MetaSubst $ foldr (\(x,t) vs' -> ((x,t):subst x t vs')) vs ss
@@ -85,7 +87,7 @@ instance Subst Extract Term where
 
 -- | Creates a hole with no meta-substitutions
 hole :: MetaVar -> Term
-hole = Hole . HoleVar []
+hole = Hole 
 
 lambda :: Var -> Term -> Term
 lambda x body = Lam (bind x body)
@@ -107,10 +109,6 @@ fvSet = Set.fromList . toListOf fv
 
 {- Pretty Printing -}
 
-instance Pretty (Name t) where
-    pretty = pretty . show
-
-
 instance {-# OVERLAPPING #-} Pretty MetaVar where
     pretty x = pretty "?" <> (pretty $ show x)
 
@@ -123,15 +121,15 @@ instance Pretty Extract where
 instance PrettyM Extract where
     prettyM = prettyM . unExtract
 
-instance PrettyM Hole where
-    prettyM (HoleVar vs mx) = do
-        pvs <- traverse (\(x,t) -> (\pt -> pt <> pretty "/" <> pretty x) <$> prettyM t) vs
-        return $ pretty mx <> brackets (hsep $ punctuate comma pvs)
-    prettyM (FilledHole t) = prettyM t
+-- instance PrettyM Hole where
+--     prettyM (HoleVar vs mx) = do
+--         pvs <- traverse (\(x,t) -> (\pt -> pt <> pretty "/" <> pretty x) <$> prettyM t) vs
+--         return $ pretty mx <> brackets (hsep $ punctuate comma pvs)
+--     prettyM (FilledHole t) = prettyM t
 
 instance PrettyM Term where
     prettyM (Var x) = return $ pretty x
-    prettyM (Hole h) = prettyM h
+    prettyM (Hole h) = return $ pretty h
     -- prettyM (Hole (MetaSubst vs) x) = return $ pretty x <> (pretty vs)
     prettyM Void = return $ pretty "void"
     prettyM Axiom = return $ pretty "axiom"

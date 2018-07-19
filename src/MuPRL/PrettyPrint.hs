@@ -18,3 +18,6 @@ import Data.Text.Prettyprint.Doc as P
 -- when we no longer need local freshness
 class PrettyM a where
     prettyM :: a -> LFreshM (Doc ann)
+
+instance Pretty (Name t) where
+    pretty = pretty . show

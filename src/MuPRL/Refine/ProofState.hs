@@ -13,9 +13,9 @@ import GHC.Generics
 import MuPRL.PrettyPrint
 
 import MuPRL.Core.Term
-import MuPRL.Refine.Telescope (Telescope)
+import MuPRL.Core.Telescope (Telescope)
 import MuPRL.Refine.Judgement
-import qualified MuPRL.Refine.Telescope as Tl
+import qualified MuPRL.Core.Telescope as Tl
 
 {-
 A proof state is a telescope of judgements that bind metavars in the rest of the telescope
@@ -101,7 +101,7 @@ join' (ProofState bnd) = do
         applySubst :: (Telescope Extract Judgement, Extract) -> MetaVar -> ProofState Judgement -> m (Telescope Extract Judgement, Extract)   
         applySubst (tl, a) x (ProofState bnd) = do
             (tlx, ax) <- unbind bnd
-            tl' <- Tl.traverse (substJdg x ax) tl
+            let tl' = Tl.map (subst x ax) tl
             let a' = subst x ax a
             return (tlx `Tl.concat` tl', a')
 

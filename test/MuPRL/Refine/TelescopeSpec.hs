@@ -1,18 +1,18 @@
-module MuPRL.Refine.TelescopeSpec where
+module MuPRL.Core.TelescopeSpec where
 
 import Test.Hspec
 
 import Unbound.Generics.LocallyNameless
 
 import MuPRL.Core.Term
-import MuPRL.Refine.Telescope (Telescope, (@>))
-import qualified MuPRL.Refine.Telescope as Tl
+import MuPRL.Core.Telescope (Telescope, (@>))
+import qualified MuPRL.Core.Telescope as Tl
 
 tl1 :: Telescope Term
 tl1 = Tl.empty @> (string2Name "a", Universe 0) @> (string2Name "x", Var $ string2Name "a")
 
 spec :: Spec
-spec = describe "MuPRL.Refine.Telescope" $ do
+spec = describe "MuPRL.Core.Telescope" $ do
     toListSpec
     findKeySpec
 
