@@ -10,7 +10,7 @@ import Control.Monad.State.Lazy
 
 import System.Console.Haskeline.MonadException
 import qualified System.Console.Haskeline as H
-import Unbound.Generics.LocallyNameless.Fresh
+import Unbound.Generics.LocallyNameless.LFresh
 import System.Console.ANSI
 
 import Data.Text.Prettyprint.Doc
@@ -37,10 +37,10 @@ instance MonadException m => MonadException (ExceptT e m) where
         run' = RunIO (fmap ExceptT . run . runExceptT)
         in runExceptT <$> f run'
 
-instance MonadException m => MonadException (FreshMT m) where
-    controlIO f = FreshMT $ controlIO $ \(RunIO run) -> let
-        run' = RunIO (fmap FreshMT . run . unFreshMT)
-        in unFreshMT <$> f run'
+instance MonadException m => MonadException (LFreshMT m) where
+    controlIO f = LFreshMT $ controlIO $ \(RunIO run) -> let
+        run' = RunIO (fmap LFreshMT . run . unLFreshMT)
+        in unLFreshMT <$> f run'
 
 
 instance MonadException m => MonadException (StateT s m) where
@@ -72,7 +72,7 @@ instance MonadRepl m => MonadRepl (ExceptT e m) where
     outputStr = lift . outputStr
     outputStrLn = lift . outputStrLn
 
-instance MonadRepl m => MonadRepl (FreshMT m) where
+instance MonadRepl m => MonadRepl (LFreshMT m) where
     getInputLine = lift . getInputLine
     getInputChar = lift . getInputChar
     outputStr = lift . outputStr

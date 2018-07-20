@@ -16,7 +16,7 @@ import MuPRL.Refine.Rule
 -- | Kind of a funky introduction rule, looks up bindings in the telescope
 intro :: (MonadRule m) => Rule m Judgement
 intro = mkRule $ \hyp -> \case 
-    g@(Equals (Var x) (Var x') t) | x == x' -> 
+    g@(Equals (Nominal x) (Nominal x') t) | x == x' -> 
         case Tl.lookupKey x hyp of
             Just t' | aeq t t' -> return axiomatic
             _ -> ruleMismatch "eq/intro" (hyp |- g)

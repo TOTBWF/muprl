@@ -65,7 +65,7 @@ execFile :: FilePath -> Repl ()
 execFile f = do
     contents <- liftIO $ T.readFile f
     p <- hoistErr $ runParser vernacular contents
-    extracts <- traverse (\v -> hoistErr =<< runFreshMT (evalVernacular v)) p
+    extracts <- traverse (\v -> hoistErr =<< runLFreshMT (evalVernacular v)) p
     traverse_ displayLn extracts
 
 -- execVernacular :: (Fresh m, MonadIO m) => Vernacular m -> m Term

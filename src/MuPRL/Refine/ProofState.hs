@@ -17,6 +17,8 @@ import MuPRL.Core.Telescope (Telescope)
 import MuPRL.Refine.Judgement
 import qualified MuPRL.Core.Telescope as Tl
 
+import Debug.Trace
+
 {-
 A proof state is a telescope of judgements that bind metavars in the rest of the telescope
 Along with a term that draws its free metavars from the telescope
@@ -86,24 +88,31 @@ ctx |>> extract = ProofState (bind ctx (Extract extract))
 ctx |> extract = ProofState (bind ctx extract)
 
 -- ProofStates form a monad, but only over proper judgement types.
-return' :: (Fresh m) => Judgement -> m (ProofState Judgement)
+return' :: (LFresh m) => Judgement -> m (ProofState Judgement)
 return' j = do
     x <- wildcard
-    return (Tl.singleton x j |> (Extract $ hole x))
+    return $ Tl.singleton x j |> (Extract (hole x))
 
-join' :: forall m. (Fresh m) => ProofState (ProofState Judgement) -> m (ProofState Judgement)
-join' (ProofState bnd) = do
-    (goals, extract) <- unbind bnd
-    -- TODO: This feels like a right fold could make things easier, need to think about it
-    (goals', extract') <- Tl.foldlMWithKey applySubst (Tl.empty, extract) goals
-    return (goals' |> extract')
+join' :: forall m. (LFresh m) => ProofState (ProofState Judgement) -> m (ProofState Judgement)
+join' (ProofState bnd) = lunbind bnd $ \(goals, extract) -> do
+    (goals', env) <- Tl.foldrMWithKey buildSubst (Tl.empty, []) goals
+    return (goals' |> substs env extract)
     where
-        applySubst :: (Telescope Extract Judgement, Extract) -> MetaVar -> ProofState Judgement -> m (Telescope Extract Judgement, Extract)   
-        applySubst (tl, a) x (ProofState bnd) = do
-            (tlx, ax) <- unbind bnd
-            let tl' = Tl.map (subst x ax) tl
-            let a' = subst x ax a
-            return (tlx `Tl.concat` tl', a')
+        buildSubst :: MetaVar -> ProofState Judgement -> (Telescope Extract Judgement, [(MetaVar, Extract)]) -> m (Telescope Extract Judgement, [(MetaVar, Extract)])
+        buildSubst x (ProofState bnd) (tl, env) = lunbind bnd $ \(tlx, ax) -> do
+            let tlx' = substs env tlx
+            return (tl `Tl.concat` tlx', (x,ax):env)
+            -- let tl' = tl `Tl.concat` tlx'
+            -- let env' = (x,ax):env
+        -- go :: Telescope Extract Judgement -> Term -> [(MetaVar, Extract)] -> ProofState (ProofState Judgement) -> ProofState Judgement
+        -- go ()
+        -- applySubst :: (Telescope Extract Judgement, )
+        -- applySubst :: (Telescope Extract Judgement, Extract) -> MetaVar -> ProofState Judgement -> m (Telescope Extract Judgement, Extract)   
+        -- applySubst (tl, a) x (ProofState bnd) = do
+        --     (tlx, ax) <- unbind bnd
+        --     let tl' = Tl.map (subst x ax) tl
+        --     let a' = subst x ax a
+        --     return (tlx `Tl.concat` tl', a')
 
 -- | Helper function for axiomatic evidence
 axiomatic :: (Typeable a, Alpha a) => ProofState a

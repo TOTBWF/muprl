@@ -1,10 +1,7 @@
-Theorem test : (a:universe 0) -> universe 0 {
-    intro; [rule universe/eqtype, rule assumption]
+Theorem i : (a:universe 0) -> (x:a) -> a {
+    -- *intro; [rule assumption, rule universe/eqtype, rule eq/intro]
+    id
 }
-
--- Theorem i : (a:universe 0) -> (x:a) -> a {
---     *intro; [rule universe/eqtype, rule assumption]
--- }
 -- 
 -- Theorem k : (a:universe 0) -> (b:universe 0) -> (x:a) -> (y:b) -> a {
 --     *intro; rule assumption | rule universe/eqtype

@@ -24,28 +24,30 @@ import MuPRL.Core.Telescope (Telescope, (@>))
 
 import MuPRL.Repl.MonadRepl
 
-type Refine = ReaderT Int (FreshMT (ExceptT Text Repl))
+type Refine = ReaderT Int (LFreshMT (ExceptT Text Repl))
 
 runRefine :: Refine a -> Repl a
 runRefine r = do
-    r <- runExceptT $ runFreshMT $ runReaderT r 0
+    r <- runExceptT $ runLFreshMT $ runReaderT r 0
     case r of
         Left err -> outputStrLn err >> abort
         Right a -> return a
 
 refine :: Judgement -> Refine Extract
 refine j = do
-    (goals, extract) <- tryTactic j
-    outputStr "Goals:" >> displayLn goals
-    metavars <- solve goals
-    -- let extract' = Tl.withTelescope metavars extract
-    return extract
+    bnd <- tryTactic j
+    lunbind bnd $ \(goals, extract) -> do
+        -- (goals, extract) <- tryTactic j
+        outputStr "Goals:" >> displayLn goals
+        metavars <- solve goals
+        -- let extract' = Tl.withTelescope metavars extract
+        return extract
     where
         solve :: Telescope Extract Judgement -> Refine (Telescope Extract Extract)
         solve = Tl.traverse (local (+1) . refine)
 
-tryTactic :: Judgement -> Refine (Telescope Extract Judgement, Extract)
-tryTactic j = catchError (unbind =<< unProofState <$> run j) (\err -> displayLn err >> tryTactic j)
+tryTactic :: Judgement -> Refine (Bind (Telescope Extract Judgement) Extract)
+tryTactic j = catchError (unProofState <$> run j) (\err -> displayLn err >> tryTactic j)
     where
         run :: Judgement -> Refine (ProofState Judgement)
         run j = do
