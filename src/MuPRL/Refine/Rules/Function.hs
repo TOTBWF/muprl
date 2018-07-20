@@ -21,9 +21,9 @@ intro = mkRule $ \hyp -> \case
     (Pi bnd) -> lunbind bnd $ \((x, unembed -> a), b) -> do
         -- We first need to check the well formedness of 'a'
         (wGoal, _) <- wellFormed hyp a
-        nx <- nominal x
-        (bodyGoal, bodyHole) <- goal (hyp @> (nx, a) |- b)
-        return ((Tl.empty @> bodyGoal @> wGoal) |>> lambda x (subst nx (Nom $ Var x) bodyHole))
+        (bodyGoal, bodyHole) <- goal (hyp @> (x, a) |- b)
+        let extract = lambda x (subst x (Var x) bodyHole)
+        return ((Tl.empty @> bodyGoal @> wGoal) |>> extract)
     goal -> ruleMismatch "fun/intro" (hyp |- goal)
 
 -- | Non-extensional function equality
@@ -48,24 +48,23 @@ eq = mkRule $ \hyp -> \case
 eqType :: (MonadRule m) => Rule m Judgement
 eqType = mkRule $ \hyp -> \case
     (Equals (Pi bnd1) (Pi bnd2) u@(Universe k)) | aeq bnd1 bnd2 -> lunbind bnd1 $ \((x, unembed -> a), b) -> do
-        nx <- nominal x
         (aGoal, _) <- goal (hyp |- (Equals a a u))
-        (bGoal, _) <- goal (hyp @> (nx,a) |- (Equals b b u))
+        (bGoal, _) <- goal (hyp @> (x,a) |- (Equals b b u))
         return ((Tl.empty @> bGoal @> aGoal) |>> Axiom)
     goal -> ruleMismatch "fun/eqtype" (hyp |- goal)
 
-elim :: (MonadRule m) => Nominal -> Rule m Judgement
+elim :: (MonadRule m) => Var -> Rule m Judgement
 elim f = mkRule $ \hyp g -> 
     case Tl.lookupKey f hyp of
         Just p@(Pi _) -> do
             -- The hard part about this is that 'x:a -> b -> c -> d' should have
             -- '(((x _a) _b) _c)' as it's extract, and the way we handle substitutions WRT metavariables is bad
-            (goals, _, extract, outputTy) <- elimArgs (Tl.empty, hyp, Nominal f) p
+            (goals, _, extract, outputTy) <- elimArgs (Tl.empty, hyp, Var f) p
             -- This is where things get tricky. We want to be able to show that
             -- given a term of type 'd', we can prove our original goal
             x <- wildcard
             (mGoal, mHole) <- goal (hyp @> (x,outputTy) |- g)
-            return (goals @> mGoal |>> subst x (Nom extract) mHole)
+            return (goals @> mGoal |>> subst x extract mHole)
             -- (aGoal, aHole) <- goal (hyp |- a)
             -- f' <- fresh $ string2Name ((name2String f) ++ "'")
             -- (bGoal, bHole) <- goal (hyp @> (f',b) |- g)
@@ -76,11 +75,10 @@ elim f = mkRule $ \hyp g ->
         Nothing -> throwError $ UndefinedVariable f
 
     where
-        elimArgs :: (MonadRule m) => (Telescope Extract Judgement, Telescope Nom Term, Term) -> Term -> m (Telescope Extract Judgement, Telescope Nom Term, Term, Term)
+        elimArgs :: (MonadRule m) => (Telescope Extract Judgement, Telescope Term Term, Term) -> Term -> m (Telescope Extract Judgement, Telescope Term Term, Term, Term)
         elimArgs (goals, hyp, extract) (Pi bnd) = lunbind bnd $ \((x, unembed -> a), b) -> do
             -- This just recurses down the function type, adding goals and building up our extract term
-            nx <- nominal x
             (aGoal, aHole) <- goal (hyp |- a)
             let extract' = (App extract aHole)
-            elimArgs (goals @> aGoal, hyp @> (nx,a), extract') b
+            elimArgs (goals @> aGoal, hyp @> (x,a), extract') b
         elimArgs (goals, hyp, extract) t = return (goals, hyp, extract, t)

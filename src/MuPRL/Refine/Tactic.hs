@@ -76,7 +76,7 @@ goalTactic sel = Tactic $ \j@(Judgement bnd) -> lunbind bnd $ \(_, goal) -> do
     tac j
 
 -- | Helper function for constructing tactics that examine the hypotheses
-hypTactic :: (MonadRule m) => (Telescope Nom Term -> Rule m Judgement) -> Tactic m Judgement
+hypTactic :: (MonadRule m) => (Telescope Term Term -> Rule m Judgement) -> Tactic m Judgement
 hypTactic sel = Tactic $ \j@(Judgement bnd) -> lunbind bnd $ \(hyp, _) -> do
     let (Tactic tac) = ruleToTac $ sel hyp
     tac j

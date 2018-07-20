@@ -20,7 +20,6 @@ type Var = Name Term
 
 data Term
     = Var Var
-    | Nominal Nominal
     | Hole MetaSubst MetaVar 
     | Void
     | Axiom
@@ -37,28 +36,17 @@ newtype Extract = Extract { unExtract :: Term }
 
 type MetaVar = Name Extract
 
--- | Nominals are used to represent the free variables of an extract
-newtype Nom = Nom { unNom :: Term }
-    deriving (Show, Generic, Typeable)
-
-type Nominal = Name Nom
-
-newtype MetaSubst = MetaSubst { metaSubst :: [(Nominal, Nom)] }
+newtype MetaSubst = MetaSubst { metaSubst :: [(Var, Term)] }
     deriving (Show, Generic, Typeable, Monoid)
 
 instance Alpha Term
 instance Alpha Extract
-instance Alpha Nom
 instance Alpha MetaSubst
 
 instance Subst Term Term where
     isvar (Var x) = Just $ SubstName x
     -- When we see a hole, we want to insert the substitution into the list
     isvar _ = Nothing
-
-instance Subst Nom Term where
-    isCoerceVar (Nominal n) = Just $ SubstCoerce n (Just . unNom)
-    isCoerceVar _ = Nothing
 
     -- subst x e (Hole (MetaSubst ms) v) = Hole (MetaSubst $ (x,e):ms) v
 
@@ -78,15 +66,7 @@ instance Subst Nom Term where
 --     substs ss (MetaSubst vs) = MetaSubst $ foldr (\(x,t) vs' -> ((x,t):subst x t vs')) vs ss
 
 
--- This could be wrong
-instance Subst Term Nom
-instance Subst Extract Nom
-instance Subst Nom Nom
-
 instance Subst Term Extract where
-    subst _ _ = id
-    substs _ = id
-instance Subst Nom Extract where
     subst _ _ = id
     substs _ = id
 instance Subst Extract Extract
@@ -97,9 +77,6 @@ instance Subst Extract Term where
     isCoerceVar _ = Nothing
 
 instance Subst Term MetaSubst
-instance Subst Nom MetaSubst where
-    subst x n (MetaSubst ms) = (MetaSubst $ (x,n):ms)
-    substs xs (MetaSubst ms) = (MetaSubst $ xs ++ ms)
 instance Subst Extract MetaSubst
 
 applyMetaSubst :: MetaSubst -> Extract -> Term
@@ -119,9 +96,6 @@ pi x typ body = Pi (bind (x, embed typ) body)
 wildcard :: (Typeable t) => (LFresh m) => m (Name t)
 wildcard = (lfresh $ string2Name "_")
 
-nominal :: (LFresh m) => Name Term -> m Nominal
-nominal = lfresh . string2Name . name2String
-
 metavar :: (LFresh m) => Name Term -> m MetaVar
 metavar = lfresh . string2Name . name2String
 
@@ -132,20 +106,11 @@ fvSet :: (Alpha a, Typeable a) => a -> Set (Name a)
 fvSet = Set.fromList . toListOf fv
 
 {- Pretty Printing -}
-instance {-# OVERLAPPING #-} Pretty Nominal where
-    pretty x = pretty "_" <> (pretty $ show x)
-
 instance {-# OVERLAPPING #-} Pretty MetaVar where
     pretty x = pretty "?" <> (pretty $ show x)
 
 instance Pretty Term where
     pretty = runLFreshM . prettyM
-
-instance Pretty Nom where
-    pretty = runLFreshM . prettyM
-
-instance PrettyM Nom where
-    prettyM = prettyM . unNom
 
 instance Pretty Extract where
     pretty = runLFreshM . prettyM
@@ -162,7 +127,6 @@ instance PrettyM MetaSubst where
 
 instance PrettyM Term where
     prettyM (Var x) = return $ pretty x
-    prettyM (Nominal n) = return $ pretty n
     prettyM (Hole ms h) = (<>) <$> prettyM ms <*> (pure $ pretty h)
     prettyM Void = return $ pretty "void"
     prettyM Axiom = return $ pretty "axiom"

@@ -1,6 +1,5 @@
 Theorem i : (a:universe 0) -> (x:a) -> a {
-    -- *intro; [rule assumption, rule universe/eqtype, rule eq/intro]
-    id
+    *intro; [rule assumption, rule universe/eqtype, rule eq/intro]
 }
 -- 
 -- Theorem k : (a:universe 0) -> (b:universe 0) -> (x:a) -> (y:b) -> a {

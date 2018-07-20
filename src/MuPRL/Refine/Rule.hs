@@ -29,7 +29,7 @@ data RuleError
     = UniverseMismatch Int Int
     | TypeMismatch Term Term
     | NotInContext Term
-    | UndefinedVariable Nominal
+    | UndefinedVariable Var
     | RuleMismatch Text Judgement
     | GoalMismatch Text Term
     | ElimMismatch Text Term
@@ -63,7 +63,7 @@ inferUniverse (Equals _ _ a) = inferUniverse a
 inferUniverse _ = return 0
 
 -- | Create a well-formedness goal
-wellFormed :: (MonadRule m) => Telescope Nom Term -> Term -> m ((MetaVar, Judgement), Term)
+wellFormed :: (MonadRule m) => Telescope Term Term -> Term -> m ((MetaVar, Judgement), Term)
 wellFormed s t = do
     k <- inferUniverse t
     goal (s |- Equals t t (Universe k))
@@ -74,7 +74,7 @@ ruleMismatch t jdg = throwError $ RuleMismatch t jdg
     -- (_, goal) <- unbind bnd
     -- throwError $ RuleMismatch t goal
 
-mkRule :: (MonadRule m) => (Telescope Nom Term -> Term -> ExceptT RuleError m (ProofState Judgement)) -> Rule m Judgement
+mkRule :: (MonadRule m) => (Telescope Term Term -> Term -> ExceptT RuleError m (ProofState Judgement)) -> Rule m Judgement
 mkRule f = Rule $ \(Judgement bnd) -> lunbind bnd $ \(hyps, g) -> f hyps g
     -- trace (show bnd) $ trace (show hyps) $ f hyps goal
 
@@ -84,7 +84,7 @@ ruleError err = mkRule $ \_ _ -> throwError err
 assumption :: (MonadRule m) => Rule m Judgement
 assumption = mkRule $ \hyp goal -> 
         case (Tl.find (aeq goal) hyp) of
-            Just (x,_) -> return (Tl.empty |>> Nominal x)
+            Just (x,_) -> return (Tl.empty |>> Var x)
             Nothing -> throwError $ NotInContext goal
 
 -- | Prove a proposition by providing evidence
