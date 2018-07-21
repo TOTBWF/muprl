@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2ca82ab2987f1ee1b07dd350c62ca68cd41fe9027f01703e9dc7a2e53c7092cf
+-- hash: c86cdd2d7cc581d2fba74d49b938aa0e838edf2d1bd8a6e43d2569e2f23a18c4
 
 name:           muprl
 version:        0.1.0.0
@@ -28,6 +28,8 @@ library
       MuPRL.Core.Eval
       MuPRL.Core.Telescope
       MuPRL.Core.Term
+      MuPRL.Core.Unbound
+      MuPRL.Core.Unbound.MonadName
       MuPRL.Error
       MuPRL.Parser.Lexer
       MuPRL.Parser.Stack
@@ -92,7 +94,7 @@ test-suite miniprl-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      MuPRL.Refine.TelescopeSpec
+      MuPRL.Core.TelescopeSpec
       Paths_muprl
   hs-source-dirs:
       test

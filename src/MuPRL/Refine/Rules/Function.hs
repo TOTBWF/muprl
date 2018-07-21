@@ -3,10 +3,9 @@ module MuPRL.Refine.Rules.Function where
 
 import Control.Monad.Except
 
-import Unbound.Generics.LocallyNameless
-import Unbound.Generics.LocallyNameless.Fresh
-
 import MuPRL.Core.Term
+import MuPRL.Core.Unbound
+import MuPRL.Core.Unbound.MonadName
 import MuPRL.Refine.Judgement
 import MuPRL.Refine.ProofState
 import qualified MuPRL.Core.Telescope as Tl
@@ -18,7 +17,7 @@ import Debug.Trace
 -- | Introduction rule for functions
 intro :: (MonadRule m) => Rule m Judgement
 intro = mkRule $ \hyp -> \case
-    (Pi bnd) -> lunbind bnd $ \((x, unembed -> a), b) -> do
+    (Pi bnd) -> lunbind bnd $ \(x, a, b) -> do
         -- We first need to check the well formedness of 'a'
         (wGoal, _) <- wellFormed hyp a
         (bodyGoal, bodyHole) <- goal (hyp @> (x, a) |- b)
@@ -47,7 +46,7 @@ eq = mkRule $ \hyp -> \case
 -- | Type equality for functions
 eqType :: (MonadRule m) => Rule m Judgement
 eqType = mkRule $ \hyp -> \case
-    (Equals (Pi bnd1) (Pi bnd2) u@(Universe k)) | aeq bnd1 bnd2 -> lunbind bnd1 $ \((x, unembed -> a), b) -> do
+    (Equals (Pi bnd1) (Pi bnd2) u@(Universe k)) | aeq bnd1 bnd2 -> lunbind bnd1 $ \(x, a, b) -> do
         (aGoal, _) <- goal (hyp |- (Equals a a u))
         (bGoal, _) <- goal (hyp @> (x,a) |- (Equals b b u))
         return ((Tl.empty @> bGoal @> aGoal) |>> Axiom)
@@ -62,21 +61,16 @@ elim f = mkRule $ \hyp g ->
             (goals, _, extract, outputTy) <- elimArgs (Tl.empty, hyp, Var f) p
             -- This is where things get tricky. We want to be able to show that
             -- given a term of type 'd', we can prove our original goal
-            x <- wildcard
+            x <- var wildcard
             (mGoal, mHole) <- goal (hyp @> (x,outputTy) |- g)
-            return (goals @> mGoal |>> subst x extract mHole)
-            -- (aGoal, aHole) <- goal (hyp |- a)
-            -- f' <- fresh $ string2Name ((name2String f) ++ "'")
-            -- (bGoal, bHole) <- goal (hyp @> (f',b) |- g)
-            -- let extract = (App (Var f) aHole)
-            -- trace (show extract) return ()
-            -- return (Tl.empty @> bGoal @> aGoal |> (App bHole aHole))
+            -- trace (show extract) $ return (goals @> mGoal |>> subst x extract mHole)
+            return (goals @> mGoal |>> mHole)
         Just t -> throwError $ ElimMismatch "fun/elim" t
         Nothing -> throwError $ UndefinedVariable f
 
     where
         elimArgs :: (MonadRule m) => (Telescope Extract Judgement, Telescope Term Term, Term) -> Term -> m (Telescope Extract Judgement, Telescope Term Term, Term, Term)
-        elimArgs (goals, hyp, extract) (Pi bnd) = lunbind bnd $ \((x, unembed -> a), b) -> do
+        elimArgs (goals, hyp, extract) (Pi bnd) = lunbind bnd $ \(x, a, b) -> do
             -- This just recurses down the function type, adding goals and building up our extract term
             (aGoal, aHole) <- goal (hyp |- a)
             let extract' = (App extract aHole)

@@ -18,8 +18,6 @@ import Unbound.Generics.LocallyNameless.Fresh
 import GHC.Generics
 import Data.Typeable (Typeable)
 
-import MuPRL.PrettyPrint
-
 -- | 'v' is the type that the meta-vars refer to, and t is the type actually stored inside the telescope
 data Telescope v t
     = Empty
@@ -30,13 +28,6 @@ instance (Typeable t, Typeable v, Alpha t, Alpha v) => Alpha (Telescope v t)
 
 instance (Subst t1 t2) => Subst t1 (Telescope v t2)
 
-instance (PrettyM t, Typeable t, Typeable v, Alpha t, Alpha v) => PrettyM (Telescope v t) where
-    prettyM tl = do
-        ptl <- P.traverse (\(x,xt) -> fmap (\pxt -> pretty x <> pretty ":" <> pxt) $ prettyM xt) $ toList tl
-        return $ hsep (punctuate comma ptl)
-
-instance (PrettyM t, Typeable t, Typeable v, Alpha t, Alpha v) => Pretty (Telescope v t) where
-    pretty = runLFreshM . prettyM
 
 empty :: Telescope v t
 empty = Empty

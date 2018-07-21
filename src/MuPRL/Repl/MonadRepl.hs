@@ -8,9 +8,9 @@ import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Monad.State.Lazy
 
+import Unbound.Generics.LocallyNameless (FreshMT(..), LFreshMT(..))
 import System.Console.Haskeline.MonadException
 import qualified System.Console.Haskeline as H
-import Unbound.Generics.LocallyNameless.LFresh
 import System.Console.ANSI
 
 import Data.Text.Prettyprint.Doc
@@ -18,7 +18,9 @@ import Data.Text.Prettyprint.Doc.Render.Terminal
 import qualified Data.Text as T
 import Data.Text (Text)
 
+
 import MuPRL.Error
+import MuPRL.Core.Unbound.MonadName
 
 type Repl = ReplT IO
 
@@ -37,11 +39,20 @@ instance MonadException m => MonadException (ExceptT e m) where
         run' = RunIO (fmap ExceptT . run . runExceptT)
         in runExceptT <$> f run'
 
+instance MonadException m => MonadException (FreshMT m) where
+    controlIO f = FreshMT $ controlIO $ \(RunIO run) -> let
+        run' = RunIO (fmap FreshMT . run . unFreshMT)
+        in unFreshMT <$> f run'
+
 instance MonadException m => MonadException (LFreshMT m) where
     controlIO f = LFreshMT $ controlIO $ \(RunIO run) -> let
         run' = RunIO (fmap LFreshMT . run . unLFreshMT)
         in unLFreshMT <$> f run'
 
+instance MonadException m => MonadException (NameMT m) where
+    controlIO f = NameMT $ controlIO $ \(RunIO run) -> let
+        run' = RunIO (fmap NameMT . run . unNameMT)
+        in unNameMT <$> f run'
 
 instance MonadException m => MonadException (StateT s m) where
     controlIO f = StateT $ \s -> controlIO $ \(RunIO run) -> let
@@ -72,11 +83,12 @@ instance MonadRepl m => MonadRepl (ExceptT e m) where
     outputStr = lift . outputStr
     outputStrLn = lift . outputStrLn
 
-instance MonadRepl m => MonadRepl (LFreshMT m) where
+instance MonadRepl m => MonadRepl (NameMT m) where
     getInputLine = lift . getInputLine
     getInputChar = lift . getInputChar
     outputStr = lift . outputStr
     outputStrLn = lift . outputStrLn
+
 
 indent :: Int -> Text -> Text
 indent n = T.append (T.replicate (4*n) " ")

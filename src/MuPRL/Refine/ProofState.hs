@@ -2,17 +2,19 @@ module MuPRL.Refine.ProofState where
 
 import Control.Monad.Trans
 import Control.Monad.Except
-import qualified Data.Sequence as Seq
-import Data.Sequence (Seq(..))
+import qualified Data.Set as Set
+import Data.Set (Set(..))
 
-import Unbound.Generics.LocallyNameless
-import Unbound.Generics.LocallyNameless.Fresh
 import Data.Typeable (Typeable)
 import GHC.Generics
+
+import qualified Unbound.Generics.LocallyNameless as Unbound
 
 import MuPRL.PrettyPrint
 
 import MuPRL.Core.Term
+import MuPRL.Core.Unbound
+import MuPRL.Core.Unbound.MonadName
 import MuPRL.Core.Telescope (Telescope)
 import MuPRL.Refine.Judgement
 import qualified MuPRL.Core.Telescope as Tl
@@ -68,18 +70,22 @@ The way around this is to use Dependent LCF, which allows us to partially constr
 newtype ProofState a = ProofState { unProofState :: (Bind (Telescope Extract a) Extract) }
     deriving (Show, Generic)
 
+instance (Typeable a, Alpha a) => GlobalBind (ProofState a) (Telescope Extract a, Extract) where
+    unbind (ProofState bnd) = Unbound.unbind bnd
+
 instance (Typeable a, Alpha a) => Alpha (ProofState a)
 
 instance (Subst Term t, Typeable t, Alpha t) => Subst Term (ProofState t)
 
 instance (PrettyM a, Typeable a, Alpha a) => PrettyM (ProofState a) where
-    prettyM (ProofState bnd) = lunbind bnd $ \(subgoals, Extract extract) -> do
+    prettyM p = do
+        (subgoals, Extract extract) <- unbind p
         psubgoals <- prettyM subgoals
         pextract <- prettyM extract
         return $ psubgoals <+> pretty "▹" <+> pextract
 
 instance (PrettyM a, Typeable a, Alpha a) => Pretty (ProofState a) where
-    pretty = runLFreshM . prettyM
+    pretty = runNameM . prettyM
 
 (|>>) :: (Typeable a, Alpha a) => Telescope Extract a -> Term -> ProofState a
 ctx |>> extract = ProofState (bind ctx (Extract extract))
@@ -88,20 +94,35 @@ ctx |>> extract = ProofState (bind ctx (Extract extract))
 ctx |> extract = ProofState (bind ctx extract)
 
 -- ProofStates form a monad, but only over proper judgement types.
-return' :: (LFresh m) => Judgement -> m (ProofState Judgement)
+return' :: (MonadName m) => Judgement -> m (ProofState Judgement)
 return' j = do
-    x <- wildcard
+    x <- metavar wildcard
     return $ Tl.singleton x j |> (Extract (hole x))
 
-join' :: forall m. (LFresh m) => ProofState (ProofState Judgement) -> m (ProofState Judgement)
-join' (ProofState bnd) = lunbind bnd $ \(goals, extract) -> do
+join' :: forall m. (MonadName m) => ProofState (ProofState Judgement) -> m (ProofState Judgement)
+join' p = do
+    (goals, extract) <- unbind p
     (goals', env) <- Tl.foldrMWithKey buildSubst (Tl.empty, []) goals
-    return (goals' |> substs env extract)
+    trace "-------------------------"
+        $ trace ("Goals: " ++ (show $ pretty goals))
+        $ trace ("Extract: " ++ (show $ unExtract extract)) 
+        $ trace ("Env :" ++ show env)
+        $ trace ("Goals (Subst): " ++ (show $ pretty goals'))
+        $ trace ("Extract (Subst): " ++ (show $ unExtract $ substs env extract)) 
+        $ return (goals' |> substs env extract)
     where
         buildSubst :: MetaVar -> ProofState Judgement -> (Telescope Extract Judgement, [(MetaVar, Extract)]) -> m (Telescope Extract Judgement, [(MetaVar, Extract)])
-        buildSubst x (ProofState bnd) (tl, env) = lunbind bnd $ \(tlx, ax) -> do
+        buildSubst x p (tl, env) = do
+            (tlx, ax) <- unbind p
             let tlx' = substs env tlx
             return (tl `Tl.concat` tlx', (x,ax):env)
+        -- buildSubst x (ProofState bnd) (tl, env) = lunbind bnd $ \(tlx, ax) -> do
+        --         a <- getAvoids
+        --         let tlx' = substs env tlx
+        --         trace "================"
+        --             $ trace ("MetaVar: " ++ show x)
+        --             $ trace ("Avoids: " ++ show a)
+        --             return (tl `Tl.concat` tlx', (x,ax):env)
             -- let tl' = tl `Tl.concat` tlx'
             -- let env' = (x,ax):env
         -- go :: Telescope Extract Judgement -> Term -> [(MetaVar, Extract)] -> ProofState (ProofState Judgement) -> ProofState Judgement

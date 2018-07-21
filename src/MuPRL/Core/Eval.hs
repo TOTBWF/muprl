@@ -8,9 +8,10 @@ import qualified Data.Set as Set
 import Unbound.Generics.LocallyNameless
 import Unbound.Generics.LocallyNameless.Fresh
 
-import Data.Text.Prettyprint.Doc
+import MuPRL.PrettyPrint
 
 import MuPRL.Core.Term
+import MuPRL.Core.Unbound
 import MuPRL.Error
 
 data EvalError 

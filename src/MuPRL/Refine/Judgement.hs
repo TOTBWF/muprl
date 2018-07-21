@@ -1,13 +1,15 @@
 module MuPRL.Refine.Judgement where
 
-import Unbound.Generics.LocallyNameless
-import Unbound.Generics.LocallyNameless.Fresh
 import Data.Typeable (Typeable)
 import GHC.Generics
+
+import qualified Unbound.Generics.LocallyNameless as Unbound
 
 import MuPRL.PrettyPrint
 
 import MuPRL.Core.Term
+import MuPRL.Core.Unbound
+import MuPRL.Core.Unbound.MonadName
 
 import MuPRL.Core.Telescope (Telescope)
 import qualified MuPRL.Core.Telescope as Tl
@@ -23,14 +25,17 @@ instance Alpha Judgement
 instance Subst Term Judgement
 instance Subst Extract Judgement
 
+instance LocalBind Judgement (Telescope Term Term, Term) where
+    lunbind (Judgement bnd) = Unbound.lunbind bnd
+
 instance PrettyM Judgement where
-    prettyM (Judgement bnd) = lunbind bnd $ \(hyps, goal) -> do
+    prettyM j = lunbind j $ \(hyps, goal) -> do
         pctx <- prettyM hyps
         pgoal <- prettyM goal
         return $ pctx <+> pretty "⊢" <+> pgoal
 
 instance Pretty Judgement where
-    pretty = runLFreshM . prettyM
+    pretty = runNameM . prettyM
 
 (|-) :: Telescope Term Term -> Term -> Judgement
 hyps |- goal = Judgement (bind hyps goal)

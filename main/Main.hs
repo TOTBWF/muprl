@@ -11,15 +11,13 @@ import Data.Foldable (traverse_)
 
 import Options.Applicative
 
-import Unbound.Generics.LocallyNameless
-import Unbound.Generics.LocallyNameless.Fresh
-
 import MuPRL.Parser.Term (term)
 import MuPRL.Parser.Vernacular (vernacular)
 import MuPRL.Parser.Stack (runParser)
 import MuPRL.Error
 import MuPRL.PrettyPrint
 import qualified MuPRL.Core.Telescope as Tl
+import MuPRL.Core.Unbound.MonadName (runNameMT)
 import MuPRL.Refine.ProofState
 import MuPRL.Refine.Judgement
 import MuPRL.Refine.Tactic
@@ -65,7 +63,7 @@ execFile :: FilePath -> Repl ()
 execFile f = do
     contents <- liftIO $ T.readFile f
     p <- hoistErr $ runParser vernacular contents
-    extracts <- traverse (\v -> hoistErr =<< runLFreshMT (evalVernacular v)) p
+    extracts <- traverse (\v -> hoistErr =<< runNameMT (evalVernacular v)) p
     traverse_ displayLn extracts
 
 -- execVernacular :: (Fresh m, MonadIO m) => Vernacular m -> m Term

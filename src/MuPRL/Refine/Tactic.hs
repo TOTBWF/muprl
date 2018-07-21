@@ -4,8 +4,6 @@ module MuPRL.Refine.Tactic where
 import Control.Monad.Except
 import Control.Monad.Reader
 
-import Unbound.Generics.LocallyNameless
-import Unbound.Generics.LocallyNameless.Fresh
 
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -17,6 +15,8 @@ import MuPRL.Error
 import MuPRL.PrettyPrint
 
 import MuPRL.Core.Term
+import MuPRL.Core.Unbound
+import MuPRL.Core.Unbound.MonadName
 import MuPRL.Refine.ProofState
 import MuPRL.Refine.Judgement
 import MuPRL.Refine.Rule
@@ -43,10 +43,8 @@ newtype Tactic m a = Tactic { unTactic :: a -> TacticT m (ProofState a) }
 runTactic :: (Monad m) => Judgement -> Tactic m Judgement -> m (Either TacticError (ProofState Judgement))
 runTactic j (Tactic t) = runExceptT (t j)
 
-applyTac :: (Fresh m) => Tactic m Judgement -> Judgement -> ExceptT TacticError m (Telescope Extract Judgement, Extract)
-applyTac (Tactic t) j = do
-    (ProofState s) <- t j
-    unbind s
+applyTac :: (MonadName m) => Tactic m Judgement -> Judgement -> ExceptT TacticError m (Telescope Extract Judgement, Extract)
+applyTac (Tactic t) j = t j >>= unbind
 
 -- | Lifts a rule to the tactic level
 ruleToTac :: (Monad m) => Rule m a -> Tactic m a
@@ -71,13 +69,13 @@ rule name = ruleToTac $ case name of
 
 -- | Helper function for constructing tactics that examine the goal
 goalTactic :: (MonadRule m) => (Term -> Rule m Judgement) -> Tactic m Judgement
-goalTactic sel = Tactic $ \j@(Judgement bnd) -> lunbind bnd $ \(_, goal) -> do
+goalTactic sel = Tactic $ \j -> lunbind j $ \(_, goal) -> do
     let (Tactic tac) = ruleToTac $ sel goal
     tac j
 
 -- | Helper function for constructing tactics that examine the hypotheses
 hypTactic :: (MonadRule m) => (Telescope Term Term -> Rule m Judgement) -> Tactic m Judgement
-hypTactic sel = Tactic $ \j@(Judgement bnd) -> lunbind bnd $ \(hyp, _) -> do
+hypTactic sel = Tactic $ \j -> lunbind j $ \(hyp, _) -> do
     let (Tactic tac) = ruleToTac $ sel hyp
     tac j
 
@@ -89,7 +87,7 @@ intro = goalTactic $ \case
     goal -> ruleError $ GoalMismatch "intro" goal
 
 -- | Looks at the goal, and selects the proper eqType rule
-eqType :: (LFresh m) => Tactic m Judgement
+eqType :: (MonadRule m) => Tactic m Judgement
 eqType = goalTactic $ \case
     (Pi _) -> Function.eqType
     (Universe _) -> Universe.eqType
@@ -97,7 +95,7 @@ eqType = goalTactic $ \case
     goal -> ruleError $ GoalMismatch "eqtype" goal
 
 -- | Looks at the goal, and selects the proper elimination rule
-elim :: (LFresh m) => Text -> Tactic m Judgement
+elim :: (MonadRule m) => Text -> Tactic m Judgement
 elim x = hypTactic $ \hyp -> 
     let x' = string2Name $ T.unpack x
     in case Tl.lookupKey x' hyp of
@@ -109,14 +107,14 @@ elim x = hypTactic $ \hyp ->
     --     Nothing -> ruleError $ UndefinedVariable x
     
 -- | Identity Tactic
-idt :: (LFresh m) => Tactic m Judgement
+idt :: (MonadRule m) => Tactic m Judgement
 idt = Tactic $ \j -> return' j
     
 orElse :: (Monad m) => Tactic m a -> Tactic m a -> Tactic m a
 orElse (Tactic t1) (Tactic t2) = Tactic $ \j -> catchError (t1 j) (const $ t2 j)
 
 -- | Attempts to run a tactic, and backtracks if it fails
-try :: (Monad m, LFresh m) => Tactic m Judgement -> Tactic m Judgement 
+try :: (MonadRule m) => Tactic m Judgement -> Tactic m Judgement 
 try t = t `orElse` idt
 
 -- | Always fails with provided message
@@ -133,7 +131,8 @@ seq_ (Tactic t1) (Tactic t2) = Tactic $ \j -> do
 
 -- | Creates a multitactic that applies the given tactic to all of the subgoals
 all_ :: forall m. (MonadRule m) => Tactic m Judgement -> Tactic m (ProofState Judgement)
-all_ t = Tactic $ \(ProofState bnd) -> lunbind bnd $ \(goals, extract) -> do
+all_ t = Tactic $ \p -> do
+    (goals, extract) <- unbind p
     s <- Tl.traverse (unTactic t) goals
     return (s |> extract)
 
@@ -147,7 +146,8 @@ thenEach t1 ts = seq_ t1 (each ts)
 -- | Given a list of tactics [t1, ..., tn], create a tactic that when given a proofstate [j1 ... jn], will run ti on ji
 -- | If there are less tactics than goals, apply the identity tactic to the remaining ones
 each :: forall m. (MonadRule m) => [Tactic m Judgement] -> Tactic m (ProofState Judgement)
-each ts = Tactic $ \(ProofState bnd) -> lunbind bnd $ \(goals, extract) -> do
+each ts = Tactic $ \p -> do
+    (goals, extract) <- unbind p
     (_, s) <- Tl.foldrMWithKey applyTacs (ts, Tl.empty) goals
     return (s |> extract)
     where

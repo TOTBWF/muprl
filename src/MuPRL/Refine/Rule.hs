@@ -5,12 +5,11 @@ import Control.Monad.Except
 
 import Data.Text (Text)
 
-import Unbound.Generics.LocallyNameless
-import Unbound.Generics.LocallyNameless.Fresh
-
 import MuPRL.Error
 import MuPRL.PrettyPrint
 import MuPRL.Core.Term
+import MuPRL.Core.Unbound
+import MuPRL.Core.Unbound.MonadName
 import MuPRL.Refine.ProofState
 import MuPRL.Refine.Judgement
 import qualified MuPRL.Core.Telescope as Tl
@@ -18,7 +17,7 @@ import MuPRL.Core.Telescope (Telescope, (@>))
 
 import Debug.Trace
 
-type MonadRule m = (LFresh m)
+type MonadRule m = (MonadName m)
 
 newtype Rule m a = Rule { unRule :: a -> ExceptT RuleError m (ProofState a) }
 
@@ -52,13 +51,13 @@ instance Error RuleError where
 -- | Given a judgement, create a goal/hole pair
 goal :: (MonadRule m) => Judgement -> m ((MetaVar, Judgement), Term)
 goal j = do
-    x <- wildcard
+    x <- metavar wildcard
     return ((x, j), hole x)
 
 -- | Infers the universe level of a given term
 inferUniverse :: (MonadRule m) => Term -> m Int
 inferUniverse (Universe k) = return $ k + 1
-inferUniverse (Pi bnd) = lunbind bnd $ \((_, unembed -> a), b) -> max <$> inferUniverse a <*> inferUniverse b
+inferUniverse (Pi bnd) = lunbind bnd $ \(_, a, b) -> max <$> inferUniverse a <*> inferUniverse b
 inferUniverse (Equals _ _ a) = inferUniverse a
 inferUniverse _ = return 0
 
@@ -75,7 +74,7 @@ ruleMismatch t jdg = throwError $ RuleMismatch t jdg
     -- throwError $ RuleMismatch t goal
 
 mkRule :: (MonadRule m) => (Telescope Term Term -> Term -> ExceptT RuleError m (ProofState Judgement)) -> Rule m Judgement
-mkRule f = Rule $ \(Judgement bnd) -> lunbind bnd $ \(hyps, g) -> f hyps g
+mkRule f = Rule $ \j -> lunbind j $ \(hyps, g) -> f hyps g
     -- trace (show bnd) $ trace (show hyps) $ f hyps goal
 
 ruleError :: (MonadRule m) => RuleError -> Rule m Judgement
