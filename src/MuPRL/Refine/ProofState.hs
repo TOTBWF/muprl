@@ -110,30 +110,13 @@ join' p = do
         $ trace ("Goals (Subst): " ++ (show $ pretty goals'))
         $ trace ("Extract (Subst): " ++ (show $ unExtract $ substs env extract)) 
         $ return (goals' |> substs env extract)
+    -- return (goals' |> substs env extract)
     where
         buildSubst :: MetaVar -> ProofState Judgement -> (Telescope Extract Judgement, [(MetaVar, Extract)]) -> m (Telescope Extract Judgement, [(MetaVar, Extract)])
         buildSubst x p (tl, env) = do
             (tlx, ax) <- unbind p
             let tlx' = substs env tlx
             return (tl `Tl.concat` tlx', (x,ax):env)
-        -- buildSubst x (ProofState bnd) (tl, env) = lunbind bnd $ \(tlx, ax) -> do
-        --         a <- getAvoids
-        --         let tlx' = substs env tlx
-        --         trace "================"
-        --             $ trace ("MetaVar: " ++ show x)
-        --             $ trace ("Avoids: " ++ show a)
-        --             return (tl `Tl.concat` tlx', (x,ax):env)
-            -- let tl' = tl `Tl.concat` tlx'
-            -- let env' = (x,ax):env
-        -- go :: Telescope Extract Judgement -> Term -> [(MetaVar, Extract)] -> ProofState (ProofState Judgement) -> ProofState Judgement
-        -- go ()
-        -- applySubst :: (Telescope Extract Judgement, )
-        -- applySubst :: (Telescope Extract Judgement, Extract) -> MetaVar -> ProofState Judgement -> m (Telescope Extract Judgement, Extract)   
-        -- applySubst (tl, a) x (ProofState bnd) = do
-        --     (tlx, ax) <- unbind bnd
-        --     let tl' = Tl.map (subst x ax) tl
-        --     let a' = subst x ax a
-        --     return (tlx `Tl.concat` tl', a')
 
 -- | Helper function for axiomatic evidence
 axiomatic :: (Typeable a, Alpha a) => ProofState a

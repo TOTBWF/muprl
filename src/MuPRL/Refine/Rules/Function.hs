@@ -62,9 +62,10 @@ elim f = mkRule $ \hyp g ->
             -- This is where things get tricky. We want to be able to show that
             -- given a term of type 'd', we can prove our original goal
             x <- var wildcard
-            (mGoal, mHole) <- goal (hyp @> (x,outputTy) |- g)
-            -- trace (show extract) $ return (goals @> mGoal |>> subst x extract mHole)
-            return (goals @> mGoal |>> mHole)
+            -- (mGoal, mHole) <- goal (hyp @> (x,outputTy) |- g)
+            -- return (goals @> mGoal |>> subst x extract mHole)
+            (mGoal, Hole _ mHole) <- goal (hyp @> (x,outputTy) |- g)
+            return (goals @> mGoal |>> Hole (MetaSubst [(x, extract)]) mHole)
         Just t -> throwError $ ElimMismatch "fun/elim" t
         Nothing -> throwError $ UndefinedVariable f
 

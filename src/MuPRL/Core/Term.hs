@@ -67,14 +67,16 @@ instance Subst Extract Extract
 
 instance Subst Extract Term where
     -- When we substitute a metavar into a term, we apply all of the substitutions we've built up
-    isCoerceVar (Hole ms x) = Just $ SubstCoerce x (Just . applyMetaSubst ms)
+    isCoerceVar (Hole ms x) = Just $ SubstCoerce x (Just . applyMetaSubst ms x)
     isCoerceVar _ = Nothing
 
 instance Subst Term MetaSubst
+--     subst x t (MetaSubst ms) = MetaSubst ((x,t):(subst x t ms))
+--     substs xs (MetaSubst ms) = MetaSubst (xs ++ substs xs ms)
 instance Subst Extract MetaSubst
 
-applyMetaSubst :: MetaSubst -> Extract -> Term
-applyMetaSubst (MetaSubst ms) e = substs ms $ unExtract e
+applyMetaSubst :: MetaSubst -> MetaVar -> Extract -> Term
+applyMetaSubst (MetaSubst ms) x e = substs (subst x e ms) $ unExtract e
 
 
 -- | Creates a hole with no meta-substitutions
