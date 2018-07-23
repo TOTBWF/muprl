@@ -15,6 +15,5 @@
 -- }
 
 Theorem app : (f:universe 0 -> universe 1) -> (x:universe 0) -> universe 1 {
-    intro; [intro; [elim f; rule assumption]]
-    -- ; [{elim f; rule assumption}]
+    intro; [intro; [elim f; rule assumption], rule fun/eqtype]; rule universe/eqtype
 }
