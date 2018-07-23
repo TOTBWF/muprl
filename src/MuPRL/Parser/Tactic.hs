@@ -26,36 +26,35 @@ import MuPRL.Refine.Tactic (Tactic)
 import qualified MuPRL.Refine.Rule as R
 import qualified MuPRL.Refine.Tactic as R
 
--- rule :: (MonadRule m) => Parser (Tactic m Judgement)
-
-tactic' :: (MonadRule m) => Parser (Tactic m Judgement)
-tactic' = P.choice
+singletac' :: (MonadRule m) => Parser (Tactic m Judgement)
+singletac' = P.choice
     [ reserved "id" $> R.idt
-    , R.try <$> (reserved "try" *> tactic)
+    , R.try <$> (reserved "try" *> singletac)
     , reserved "fail" $> R.fail "fail tactic invoked"
     , reserved "intro" $> R.intro
     , reserved "eqType" $> R.eqType
     , R.elim <$> (reserved "elim" *> identifier)
-    -- , reserved "elim" $> R.eqType
-    -- , R.use <$> (reserved "use" *> term)
     , R.rule <$> (reserved "rule" *> ruleName)
-    , braces tactic
+    , braces singletac
     ]
 
 multitactic :: (MonadRule m) => Parser (Tactic m (ProofState Judgement))
 multitactic = P.choice
     [ R.each <$> brackets (P.sepBy tactic comma)
-    , R.all_ <$> tactic
+    , R.all_ <$> singletac
     ]
 
 operators :: (MonadRule m) => [[P.Operator Parser (Tactic m Judgement)]]
 operators =
     [ [ P.Prefix (symbol "*" $> R.many)]
     , [ P.InfixR (symbol "|" $> R.orElse)]
-    , [ P.Postfix (foldr1 (.) <$> P.some seqOp) ]
     ]
-    where
-        seqOp = (symbol ";" *> (flip R.seq_ <$> multitactic)) 
+
+singletac :: (MonadRule m) => Parser (Tactic m Judgement)
+singletac = P.makeExprParser singletac' operators
 
 tactic :: (MonadRule m) => Parser (Tactic m Judgement)
-tactic = P.makeExprParser tactic' operators
+tactic = do
+    t <- singletac
+    ts <- P.many ((symbol ";") *> multitactic)
+    return $ foldl' R.seq_ t ts
