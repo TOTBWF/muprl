@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e0f7645b77c06cbb5655afef796d24840444ddcef21abf725d3639c8083834ad
+-- hash: cf54430414fee834af9451d0246ef7ed03c3434c74591815f3e5ef44c7d36459
 
 name:           muprl
 version:        0.1.0.0
@@ -96,6 +96,7 @@ test-suite miniprl-test
   other-modules:
       MuPRL.Core.TelescopeSpec
       MuPRL.Core.TermSpec
+      MuPRL.Parser.TacticSpec
       Paths_muprl
   hs-source-dirs:
       test

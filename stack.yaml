@@ -36,7 +36,12 @@ resolver: lts-10.7
 # non-dependency (i.e. a user package), and its test suites and benchmarks
 # will not be run. This is useful for tweaking upstream packages.
 packages:
-- .
+  - location: .
+  - location:
+      git: git@github.com:TOTBWF/unbound-generics.git
+      commit: 065913149bff1a031b3b1ca598ea3e97ec03dacc
+    extra-dep: true
+
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 # extra-deps: []

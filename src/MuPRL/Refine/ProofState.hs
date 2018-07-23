@@ -102,21 +102,22 @@ return' j = do
 join' :: forall m. (MonadName m) => ProofState (ProofState Judgement) -> m (ProofState Judgement)
 join' p = do
     (goals, extract) <- unbind p
-    (goals', env) <- Tl.foldrMWithKey buildSubst (Tl.empty, []) goals
+    (goals', env, extract') <- Tl.foldrMWithKey buildSubst (Tl.empty, [], extract) goals
     trace "-------------------------"
         $ trace ("Goals: " ++ (show $ pretty goals))
         $ trace ("Extract: " ++ (show $ unExtract extract)) 
         $ trace ("Env :" ++ show env)
         $ trace ("Goals (Subst): " ++ (show $ pretty goals'))
-        $ trace ("Extract (Subst): " ++ (show $ unExtract $ substs env extract)) 
-        $ return (goals' |> substs env extract)
+        $ trace ("Extract (Subst): " ++ (show $ unExtract $ extract')) 
+        $ return (goals' |> substs env extract')
     -- return (goals' |> substs env extract)
     where
-        buildSubst :: MetaVar -> ProofState Judgement -> (Telescope Extract Judgement, [(MetaVar, Extract)]) -> m (Telescope Extract Judgement, [(MetaVar, Extract)])
-        buildSubst x p (tl, env) = do
+        buildSubst :: MetaVar -> ProofState Judgement -> (Telescope Extract Judgement, [(MetaVar, Extract)], Extract) -> m (Telescope Extract Judgement, [(MetaVar, Extract)], Extract)
+        buildSubst x p (tl, env, extract) = do
             (tlx, ax) <- unbind p
             let tlx' = substs env tlx
-            return (tl `Tl.concat` tlx', (x,ax):env)
+            let extract' = subst x ax extract
+            return (tl `Tl.concat` tlx', (x,ax):env, extract')
 
 -- | Helper function for axiomatic evidence
 axiomatic :: (Typeable a, Alpha a) => ProofState a

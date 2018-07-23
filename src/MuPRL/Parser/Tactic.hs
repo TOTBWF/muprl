@@ -52,8 +52,10 @@ operators :: (MonadRule m) => [[P.Operator Parser (Tactic m Judgement)]]
 operators =
     [ [ P.Prefix (symbol "*" $> R.many)]
     , [ P.InfixR (symbol "|" $> R.orElse)]
-    , [ P.Postfix (symbol ";" *> (flip R.seq_ <$> multitactic)) ]
+    , [ P.Postfix (foldr1 (.) <$> P.some seqOp) ]
     ]
+    where
+        seqOp = (symbol ";" *> (flip R.seq_ <$> multitactic)) 
 
 tactic :: (MonadRule m) => Parser (Tactic m Judgement)
 tactic = P.makeExprParser tactic' operators
