@@ -62,22 +62,6 @@ loop = do
 execFile :: FilePath -> Repl ()
 execFile f = do
     contents <- liftIO $ T.readFile f
-    p <- hoistErr $ runParser vernacular contents
-    extracts <- traverse (\v -> hoistErr =<< runNameMT (evalVernacular v)) p
+    p <- hoistError $ runParser vernacular contents
+    extracts <- traverse (\v -> hoistError =<< runNameMT (evalVernacular v)) p
     traverse_ displayLn extracts
-
--- execVernacular :: (Fresh m, MonadIO m) => Vernacular m -> m Term
--- execVernacular (Theorem _ goal tac) = do
---     (ProofState bnd) <- hoistErr =<< runTactic (Tl.empty |- goal) tac
---     (subgoals, extract) <- unbind bnd
---     undefined
---     if (Tl.null subgoals) 
---         then return extract
---         else 
-
-hoistErr :: (Error e, MonadIO m) => Either e a -> m a
-hoistErr (Left err) = printErr err
-hoistErr (Right a) = return a
-
-printErr :: (Error e, MonadIO m) => e -> m a
-printErr err = liftIO $ die $ T.unpack $ renderError err

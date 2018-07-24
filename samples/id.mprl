@@ -1,19 +1,3 @@
--- Theorem i : (a:universe 0) -> (x:a) -> a {
---     *intro; [rule assumption, rule universe/eqtype]
--- }
--- 
--- Theorem k : (a:universe 0) -> (b:universe 0) -> (x:a) -> (y:b) -> a {
---     *intro; rule assumption | rule universe/eqtype
--- }
-
--- Theorem s : (a:universe 0) -> (b:universe 0) -> (c:universe 0) -> (x:a -> b -> c) -> (y:a -> b) -> (z:a) -> c {
---     *intro;
---     {try {rule universe/eqtype | *{rule fun/eqtype}; rule eq/intro}};
---     elim x;
---     try {elim y};
---     rule assumption
--- }
-
-Theorem app : (f:universe 0 -> universe 1) -> (x:universe 0) -> universe 1 {
-    intro; [intro; [elim f; rule assumption], rule fun/eqtype]; rule universe/eqtype
+Theorem i : (a:universe 0) -> (x:a) -> a {
+    *intro; [rule assumption, rule universe/eqtype]
 }
