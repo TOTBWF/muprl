@@ -1,6 +1,6 @@
 name:                muprl
 version:             0.1.0.0
-github:              "totbwf/miniprl"
+github:              "totbwf/muprl"
 license:             BSD3
 author:              "Reed Mullanix"
 maintainer:          "reedmullanix@egmail.com"
@@ -17,20 +17,20 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on Github at <https://github.com/githubuser/miniprl#readme>
+description:         Please see the README on Github at <https://github.com/totbwf/muprl#readme>
 
 dependencies:
 - base >= 4.7 && < 5
 - megaparsec >= 6 && < 7
 - mtl >= 2 && < 3
-- lens >= 4 && < 5
 - text >= 1 && < 2
 - prettyprinter >= 1 && < 2
 - prettyprinter-ansi-terminal >= 1 && < 2
 - unbound-generics >= 0.3 && < 0.4
 - haskeline >= 0.7 && < 0.8
-- ansi-terminal >= 0.7 && < 0.8
+- ansi-terminal >= 0.8 && < 0.9
 - containers >= 0.5 && < 0.6
+- haskell-lsp >= 0.2 && < 0.3
 
 default-extensions:
 - TupleSections
@@ -65,7 +65,7 @@ executables:
     
 
 tests:
-  miniprl-test:
+  muprl-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:

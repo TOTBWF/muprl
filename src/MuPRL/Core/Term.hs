@@ -31,7 +31,7 @@ newtype Extract = Extract { unExtract :: Term }
 type MetaVar = Name Extract
 
 newtype MetaSubst = MetaSubst { metaSubst :: [(Var, Term)] }
-    deriving (Show, Generic, Typeable, Monoid)
+    deriving (Show, Generic, Typeable)
 
 instance Alpha Term
 instance Alpha Extract
