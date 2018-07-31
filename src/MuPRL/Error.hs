@@ -14,10 +14,6 @@ toError :: (Error e) => Either e a -> Either Text a
 toError (Left err) = Left $ renderError err
 toError (Right r) = Right r
 
-liftEither :: (MonadError e m) => Either e a ->  m a
-liftEither (Left e) = throwError e
-liftEither (Right a) = return a
-
 liftExceptT :: (MonadError e' m) => ExceptT e m a -> (e -> e') -> m a
 liftExceptT m f = do
     r <- runExceptT m

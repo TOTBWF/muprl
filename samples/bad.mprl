@@ -1,0 +1,3 @@
+Theorem bad: (a:universe 0) -> universe 0 {
+    intro;
+}
