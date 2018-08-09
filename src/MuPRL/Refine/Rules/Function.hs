@@ -18,11 +18,9 @@ import Debug.Trace
 intro :: (MonadRule m) => Rule m Judgement
 intro = mkRule $ \hyp -> \case
     (Pi bnd) -> lunbind bnd $ \(x, a, b) -> do
-        -- We first need to check the well formedness of 'a'
-        (wGoal, _) <- wellFormed hyp a
-        (bodyGoal, bodyHole) <- goal (hyp @> (x, a) |- b)
-        let extract = lambda x (subst x (Var x) bodyHole)
-        return ((Tl.empty @> bodyGoal @> wGoal) |>> extract)
+        bodyHole <- goal (hyp @> (x, a) |- b)
+        wellFormed hyp a
+        return $ lambda x bodyHole
     goal -> ruleMismatch "fun/intro" (hyp |- goal)
 
 -- | Non-extensional function equality
@@ -47,9 +45,9 @@ eq = mkRule $ \hyp -> \case
 eqType :: (MonadRule m) => Rule m Judgement
 eqType = mkRule $ \hyp -> \case
     (Equals (Pi bnd1) (Pi bnd2) u@(Universe k)) | aeq bnd1 bnd2 -> lunbind bnd1 $ \(x, a, b) -> do
-        (aGoal, _) <- goal (hyp |- (Equals a a u))
-        (bGoal, _) <- goal (hyp @> (x,a) |- (Equals b b u))
-        return ((Tl.empty @> bGoal @> aGoal) |>> Axiom)
+        _ <- goal (hyp |- (Equals a a u))
+        _ <- goal (hyp @> (x,a) |- (Equals b b u))
+        return Axiom
     goal -> ruleMismatch "fun/eqtype" (hyp |- goal)
 
 elim :: (MonadRule m) => Var -> Rule m Judgement
@@ -58,22 +56,21 @@ elim f = mkRule $ \hyp g ->
         Just p@(Pi _) -> do
             -- The hard part about this is that 'x:a -> b -> c -> d' should have
             -- '(((x _a) _b) _c)' as it's extract, and the way we handle substitutions WRT metavariables is bad
-            (goals, _, extract, outputTy) <- elimArgs (Tl.empty, hyp, Var f) p
+            (_, extract, outputTy) <- elimArgs (hyp, Var f) p
             -- This is where things get tricky. We want to be able to show that
             -- given a term of type 'd', we can prove our original goal
             x <- var wildcard
             -- (mGoal, mHole) <- goal (hyp @> (x,outputTy) |- g)
             -- return (goals @> mGoal |>> subst x extract mHole)
-            (mGoal, Hole _ mHole) <- goal (hyp @> (x,outputTy) |- g)
-            return (goals @> mGoal |>> Hole (MetaSubst [(x, extract)] (DelayedBinds [])) mHole)
+            (Hole _ mHole) <- goal (hyp @> (x,outputTy) |- g)
+            return $ Hole (MetaSubst [(x, extract)] (DelayedBinds [])) mHole
         Just t -> throwError $ ElimMismatch "fun/elim" t
         Nothing -> throwError $ UndefinedVariable f
 
     where
-        elimArgs :: (MonadRule m) => (Telescope Extract Judgement, Telescope Term Term, Term) -> Term -> m (Telescope Extract Judgement, Telescope Term Term, Term, Term)
-        elimArgs (goals, hyp, extract) (Pi bnd) = lunbind bnd $ \(x, a, b) -> do
+        elimArgs (hyp, extract) (Pi bnd) = lunbind bnd $ \(x, a, b) -> do
             -- This just recurses down the function type, adding goals and building up our extract term
-            (aGoal, aHole) <- goal (hyp |- a)
+            aHole <- goal (hyp |- a)
             let extract' = (App extract aHole)
-            elimArgs (goals @> aGoal, hyp @> (x,a), extract') b
-        elimArgs (goals, hyp, extract) t = return (goals, hyp, extract, t)
+            elimArgs (hyp @> (x,a), extract') b
+        elimArgs (hyp, extract) t = return (hyp, extract, t)

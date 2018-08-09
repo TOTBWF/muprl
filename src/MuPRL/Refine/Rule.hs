@@ -2,6 +2,7 @@
 module MuPRL.Refine.Rule where
 
 import Control.Monad.Except
+import Control.Monad.Writer
 
 import Data.Text (Text)
 
@@ -49,10 +50,12 @@ instance Error RuleError where
 -- search t tl = Tl.find (aeq t) tl
 
 -- | Given a judgement, create a goal/hole pair
-goal :: (MonadRule m) => Judgement -> m ((MetaVar, Judgement), Term)
+goal :: (MonadRule m, MonadWriter (Telescope Extract Judgement) m) => Judgement -> m Term
 goal j = do
     x <- metavar wildcard
-    return ((x, j), hole x)
+    tell $ Tl.singleton x j
+    return $ hole x
+    -- return ((x, j), hole x)
 
 -- | Infers the universe level of a given term
 inferUniverse :: (MonadRule m) => Term -> m Int
@@ -62,20 +65,21 @@ inferUniverse (Equals _ _ a) = inferUniverse a
 inferUniverse _ = return 0
 
 -- | Create a well-formedness goal
-wellFormed :: (MonadRule m) => Telescope Term Term -> Term -> m ((MetaVar, Judgement), Term)
+wellFormed :: (MonadRule m, MonadWriter (Telescope Extract Judgement) m) => Telescope Term Term -> Term -> m ()
 wellFormed s t = do
     k <- inferUniverse t
-    goal (s |- Equals t t (Universe k))
-
+    _ <- goal (s |- Equals t t (Universe k))
+    return ()
 
 ruleMismatch :: (MonadRule m, MonadError RuleError m) => Text -> Judgement -> m a
 ruleMismatch t jdg = throwError $ RuleMismatch t jdg
-    -- (_, goal) <- unbind bnd
-    -- throwError $ RuleMismatch t goal
 
-mkRule :: (MonadRule m) => (Telescope Term Term -> Term -> ExceptT RuleError m (ProofState Judgement)) -> Rule m Judgement
-mkRule f = Rule $ \j -> lunbind j $ \(hyps, g) -> f hyps g
-    -- trace (show bnd) $ trace (show hyps) $ f hyps goal
+
+-- | Creates a rule from a function. The WriterT is used to construct the subgoals listing
+mkRule :: (MonadRule m) => (Telescope Term Term -> Term -> WriterT (Telescope Extract Judgement) (ExceptT RuleError m) Term) -> Rule m Judgement
+mkRule f = Rule $ \j -> lunbind j $ \(hyps, g) -> do
+    (extract, subgoals) <- runWriterT $ f hyps g
+    return (subgoals |>> extract)
 
 ruleError :: (MonadRule m) => RuleError -> Rule m Judgement
 ruleError err = mkRule $ \_ _ -> throwError err
@@ -83,7 +87,7 @@ ruleError err = mkRule $ \_ _ -> throwError err
 assumption :: (MonadRule m) => Rule m Judgement
 assumption = mkRule $ \hyp goal -> 
         case (Tl.find (aeq goal) hyp) of
-            Just (x,_) -> return (Tl.empty |>> Var x)
+            Just (x,_) -> return $ Var x
             Nothing -> throwError $ NotInContext goal
 
 -- | Prove a proposition by providing evidence

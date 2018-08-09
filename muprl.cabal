@@ -4,7 +4,7 @@ cabal-version: >= 1.10
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1418ad7639ae40930f794f9f41a4ad2b7955490017ac6d2c58dfc989427e27d8
+-- hash: 264c0127d7eb9b374d723db05c904df90f6adf92859b3a6108eed9c95a07132e
 
 name:           muprl
 version:        0.1.0.0
@@ -43,6 +43,7 @@ library
       MuPRL.Refine.Rule
       MuPRL.Refine.Rules.Equality
       MuPRL.Refine.Rules.Function
+      MuPRL.Refine.Rules.Pair
       MuPRL.Refine.Rules.Universe
       MuPRL.Refine.Rules.Void
       MuPRL.Refine.Tactic

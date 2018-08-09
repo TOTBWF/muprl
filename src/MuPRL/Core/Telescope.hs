@@ -28,6 +28,11 @@ instance (Typeable t, Typeable v, Alpha t, Alpha v) => Alpha (Telescope v t)
 
 instance (Subst t1 t2) => Subst t1 (Telescope v t2)
 
+instance (Typeable t, Typeable v, Alpha t, Alpha v) => Semigroup (Telescope v t) where
+    (<>) = concat
+
+instance (Typeable t, Typeable v, Alpha t, Alpha v) => Monoid (Telescope v t) where
+    mempty = empty
 
 empty :: Telescope v t
 empty = Empty

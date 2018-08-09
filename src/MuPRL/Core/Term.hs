@@ -21,6 +21,8 @@ data Term
     | Lam (Bind Var Term) 
     | Pi (Bind (Var, Embed Term) Term)
     | App Term Term
+    | Pair Term Term
+    | Prod Term Term
     | Equals Term Term Term
     deriving (Show, Generic, Typeable)
 
@@ -30,6 +32,7 @@ newtype Extract = Extract { unExtract :: Term }
 
 type MetaVar = Name Extract
 
+-- | Used to implement the delayed binding behavior of a metavariable
 data DelayedBind
     = Close AlphaCtx NamePatFind
     | Open AlphaCtx NthPatFind
@@ -64,23 +67,9 @@ data MetaSubst = MetaSubst
 instance Alpha Term
 instance Alpha Extract
 instance Alpha MetaSubst
---     aeq' ctx ms1 ms2  = aeq' ctx (metaSubst ms1) (metaSubst ms2)
---     fvAny' ctx nfn ms = (\s -> ms { metaSubst = s }) <$> fvAny' ctx nfn (metaSubst ms)
---     close ctx np ms = ms { closedVars = (ctx, np):closedVars ms }
---     -- open ctx np ms = ms { closedVars = (ctx, np):closedVars ms }
---     isPat ms = undefined
---     isTerm ms = undefined
---     isEmbed ms = undefined
---     nthPatFind ms = undefined
---     namePatFind ms = undefined
---     swaps' ctx perm ms = undefined
---     lfreshen' ctx ms cont = undefined
---     freshen' ctx ms = undefined
---     acompare' ctx ms1 ms2 = undefined
 
 instance Subst Term Term where
     isvar (Var x) = Just $ SubstName x
-    -- When we see a hole, we want to insert the substitution into the list
     isvar _ = Nothing
 
 instance Subst Term Extract where

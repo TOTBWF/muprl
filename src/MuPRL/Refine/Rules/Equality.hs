@@ -18,6 +18,6 @@ intro :: (MonadRule m) => Rule m Judgement
 intro = mkRule $ \hyp -> \case 
     g@(Equals (Var x) (Var x') t) | x == x' -> 
         case Tl.lookupKey x hyp of
-            Just t' | aeq t t' -> return axiomatic
+            Just t' | aeq t t' -> return Axiom
             _ -> ruleMismatch "eq/intro" (hyp |- g)
     g -> ruleMismatch "eq/intro" (hyp |- g)

@@ -13,5 +13,5 @@ import MuPRL.Refine.Rule
 -- | Type equality for void
 eqType :: (MonadRule m) => Rule m Judgement
 eqType = mkRule $ \hyp -> \case
-    (Equals Void Void (Universe _)) -> return axiomatic
+    (Equals Void Void (Universe _)) -> return Axiom
     goal -> ruleMismatch "void/eqtype" (hyp |- goal)

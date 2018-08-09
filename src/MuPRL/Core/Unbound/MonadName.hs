@@ -1,5 +1,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE TypeFamilies #-}
 module MuPRL.Core.Unbound.MonadName 
     ( MonadName(..)
     , NameMT(..), NameM, runNameMT, runNameM
@@ -12,6 +14,8 @@ import Control.Monad.Trans
 import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.Reader
+import Control.Monad.Writer
+import Control.Monad.State
 
 import Unbound.Generics.LocallyNameless (LFreshMT, FreshMT, LFresh, Fresh, Bind, Embed, Alpha, Subst)
 import qualified Unbound.Generics.LocallyNameless as Unbound
@@ -23,8 +27,12 @@ import MuPRL.Core.Term
 class (Fresh m, LFresh m) => MonadName m where
     -- | Creates a locally fresh variable
     var :: String -> m Var
+    default var :: (MonadTrans t, MonadName n, t n ~ m) => String -> m Var
+    var = lift . var
     -- | Creates a globally fresh metavariable
     metavar :: String -> m MetaVar
+    default metavar :: (MonadTrans t, MonadName n, t n ~ m) => String -> m MetaVar
+    metavar = lift . metavar
 
 newtype NameMT m a = NameMT { unNameMT :: LFreshMT (FreshMT m) a}
     deriving (Functor, Applicative, Monad, MonadIO, Fresh, LFresh, MonadError e)
@@ -63,10 +71,7 @@ class GlobalBind b u | b -> u where
     unbind :: (MonadName m) => b -> m u
 
 {- MTL Boilerplate -}
-instance (MonadName m) => MonadName (ExceptT e m) where
-    var = lift . var
-    metavar = lift . metavar
-
-instance (MonadName m) => MonadName (ReaderT r m) where
-    var = lift . var
-    metavar = lift . metavar
+instance (MonadName m) => MonadName (ExceptT e m)
+instance (MonadName m) => MonadName (ReaderT r m)
+instance (Monoid w, MonadName m) => MonadName (WriterT w m)
+instance (MonadName m) => MonadName (StateT s m)

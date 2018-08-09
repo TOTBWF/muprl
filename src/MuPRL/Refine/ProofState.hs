@@ -119,6 +119,3 @@ join' p = do
             let extract' = subst x ax extract
             return (tl `Tl.concat` tlx', (x,ax):env, extract')
 
--- | Helper function for axiomatic evidence
-axiomatic :: (Typeable a, Alpha a) => ProofState a
-axiomatic = Tl.empty |> (Extract Axiom)

@@ -13,6 +13,6 @@ import MuPRL.Refine.Rule
 -- | Type equality for universes
 eqType :: (MonadRule m) => Rule m Judgement
 eqType = mkRule $ \hyp -> \case
-    (Equals (Universe i) (Universe j) (Universe k)) | (max i j < k) -> return axiomatic
+    (Equals (Universe i) (Universe j) (Universe k)) | (max i j < k) -> return Axiom
                                                     | otherwise -> throwError $ UniverseMismatch (max i j) k
     goal -> ruleMismatch "universe/eqtype" (hyp |- goal)
