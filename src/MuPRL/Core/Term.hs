@@ -30,35 +30,58 @@ newtype Extract = Extract { unExtract :: Term }
 
 type MetaVar = Name Extract
 
-newtype MetaSubst = MetaSubst { metaSubst :: [(Var, Term)] }
+data DelayedBind
+    = Close AlphaCtx NamePatFind
+    | Open AlphaCtx NthPatFind
+
+instance Show DelayedBind where
+    show (Close _ _) = "<close>"
+    show (Open _ _) = "<open>"
+
+newtype DelayedBinds = DelayedBinds { unDelayedBinds :: [DelayedBind] }
+    deriving (Show)
+
+instance Alpha DelayedBinds where
+    aeq' _ _ _ = True
+    fvAny' _ _ = pure
+    close ctx np (DelayedBinds bs) = DelayedBinds $ Close ctx np:bs
+    open ctx np (DelayedBinds bs) = DelayedBinds $ Open ctx np:bs
+    isPat _ = inconsistentDisjointSet
+    isTerm _ = mempty
+    namePatFind  _ = NamePatFind $ const $ Left 0
+    nthPatFind _ = NthPatFind Left
+    swaps' _ _ = id
+    lfreshen' _ i cont = cont i mempty
+    freshen' _ i = return (i, mempty)
+    acompare' _ _ _ = EQ
+
+data MetaSubst = MetaSubst 
+    { metaSubst :: [(Var, Term)]
+    , closedVars :: DelayedBinds
+    }
     deriving (Show, Generic, Typeable)
 
 instance Alpha Term
 instance Alpha Extract
 instance Alpha MetaSubst
+--     aeq' ctx ms1 ms2  = aeq' ctx (metaSubst ms1) (metaSubst ms2)
+--     fvAny' ctx nfn ms = (\s -> ms { metaSubst = s }) <$> fvAny' ctx nfn (metaSubst ms)
+--     close ctx np ms = ms { closedVars = (ctx, np):closedVars ms }
+--     -- open ctx np ms = ms { closedVars = (ctx, np):closedVars ms }
+--     isPat ms = undefined
+--     isTerm ms = undefined
+--     isEmbed ms = undefined
+--     nthPatFind ms = undefined
+--     namePatFind ms = undefined
+--     swaps' ctx perm ms = undefined
+--     lfreshen' ctx ms cont = undefined
+--     freshen' ctx ms = undefined
+--     acompare' ctx ms1 ms2 = undefined
 
 instance Subst Term Term where
     isvar (Var x) = Just $ SubstName x
     -- When we see a hole, we want to insert the substitution into the list
     isvar _ = Nothing
-
-    -- subst x e (Hole (MetaSubst ms) v) = Hole (MetaSubst $ (x,e):ms) v
-
--- instance Subst Term Hole where
---     subst x t (HoleVar vs mx) = HoleVar ((x,t):subst x t vs) mx
---     subst x t (FilledHole t') = FilledHole (subst x t t')
-
---     substs ts (HoleVar vs mx) = HoleVar (foldr (\(x,t) vs' -> (x,t):subst x t vs') vs ts) mx
---     substs ts (FilledHole t) = FilledHole (substs ts t)
-
--- instance Subst Extract Hole where
---     subst mx e (HoleVar vs mx') | mx == mx' = FilledHole (substs vs $ unExtract e)
---                                 | otherwise = HoleVar (subst mx e vs) mx'
---     subst mx e (FilledHole t) = FilledHole (subst mx e t)
--- instance Subst Term MetaSubst where
---     subst x t (MetaSubst vs) = MetaSubst ((x,t):subst x t vs)
---     substs ss (MetaSubst vs) = MetaSubst $ foldr (\(x,t) vs' -> ((x,t):subst x t vs')) vs ss
-
 
 instance Subst Term Extract where
     subst _ _ = id
@@ -70,18 +93,24 @@ instance Subst Extract Term where
     isCoerceVar (Hole ms x) = Just $ SubstCoerce x (Just . applyMetaSubst ms x)
     isCoerceVar _ = Nothing
 
-instance Subst Term MetaSubst
---     subst x t (MetaSubst ms) = MetaSubst ((x,t):(subst x t ms))
---     substs xs (MetaSubst ms) = MetaSubst (xs ++ substs xs ms)
-instance Subst Extract MetaSubst
+instance Subst Term MetaSubst where
+    subst x t ms = ms { metaSubst = subst x t (metaSubst ms) }
+    substs ts ms = ms { metaSubst = substs ts (metaSubst ms) }
+instance Subst Extract MetaSubst where
+    subst x e ms = ms { metaSubst = subst x e (metaSubst ms) }
+    substs es ms = ms { metaSubst = substs es (metaSubst ms) }
 
 applyMetaSubst :: MetaSubst -> MetaVar -> Extract -> Term
-applyMetaSubst (MetaSubst ms) x e = substs (subst x e ms) $ unExtract e
-
+applyMetaSubst (MetaSubst ms cl) x e = 
+    let t = substs ms $ unExtract e
+        applyBind b t = case b of
+            Close ctx np -> close ctx np t
+            Open ctx np -> open ctx np t
+    in foldr applyBind t $ unDelayedBinds cl
 
 -- | Creates a hole with no meta-substitutions
 hole :: MetaVar -> Term
-hole = Hole (MetaSubst [])
+hole = Hole (MetaSubst [] (DelayedBinds []))
 
 lambda :: Var -> Term -> Term
 lambda x body = Lam (bind x body)

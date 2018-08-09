@@ -4,7 +4,7 @@ cabal-version: >= 1.10
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b0692d85423c9dddef4da117af324a22959f3218212be004d16d47a9db3da08e
+-- hash: 1418ad7639ae40930f794f9f41a4ad2b7955490017ac6d2c58dfc989427e27d8
 
 name:           muprl
 version:        0.1.0.0
@@ -61,6 +61,7 @@ library
     , containers >=0.5 && <0.6
     , haskeline >=0.7 && <0.8
     , haskell-lsp >=0.2 && <0.3
+    , lens >=4 && <5
     , megaparsec >=6 && <7
     , mtl >=2 && <3
     , prettyprinter >=1 && <2
@@ -81,6 +82,7 @@ executable muprl
     , containers >=0.5 && <0.6
     , haskeline >=0.7 && <0.8
     , haskell-lsp >=0.2 && <0.3
+    , lens >=4 && <5
     , megaparsec >=6 && <7
     , mtl >=2 && <3
     , muprl
@@ -110,6 +112,7 @@ test-suite muprl-test
     , haskeline >=0.7 && <0.8
     , haskell-lsp >=0.2 && <0.3
     , hspec
+    , lens >=4 && <5
     , megaparsec >=6 && <7
     , mtl >=2 && <3
     , muprl

@@ -44,7 +44,7 @@ instance PrettyM Extract where
     prettyM = prettyM . unExtract
 
 instance PrettyM MetaSubst where
-    prettyM (MetaSubst ms) = 
+    prettyM (MetaSubst ms _) = 
         let pp (x,t) = do
                 pt <- prettyM t
                 return $ pt <> pretty "/" <> pretty x

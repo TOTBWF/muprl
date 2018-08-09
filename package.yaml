@@ -23,6 +23,7 @@ dependencies:
 - base >= 4.7 && < 5
 - megaparsec >= 6 && < 7
 - mtl >= 2 && < 3
+- lens >= 4 && < 5
 - text >= 1 && < 2
 - prettyprinter >= 1 && < 2
 - prettyprinter-ansi-terminal >= 1 && < 2

@@ -65,7 +65,7 @@ elim f = mkRule $ \hyp g ->
             -- (mGoal, mHole) <- goal (hyp @> (x,outputTy) |- g)
             -- return (goals @> mGoal |>> subst x extract mHole)
             (mGoal, Hole _ mHole) <- goal (hyp @> (x,outputTy) |- g)
-            return (goals @> mGoal |>> Hole (MetaSubst [(x, extract)]) mHole)
+            return (goals @> mGoal |>> Hole (MetaSubst [(x, extract)] (DelayedBinds [])) mHole)
         Just t -> throwError $ ElimMismatch "fun/elim" t
         Nothing -> throwError $ UndefinedVariable f
 
