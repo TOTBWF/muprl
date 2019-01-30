@@ -22,15 +22,17 @@ description:         Please see the README on Github at <https://github.com/totb
 dependencies:
 - base >= 4.7 && < 5
 - megaparsec >= 6 && < 7
+- lens >= 4 && < 5
 - mtl >= 2 && < 3
 - text >= 1 && < 2
 - prettyprinter >= 1 && < 2
 - prettyprinter-ansi-terminal >= 1 && < 2
-- unbound-generics >= 0.3 && < 0.4
+- unbound-generics >= 0.4 && < 0.5
 - haskeline >= 0.7 && < 0.8
 - ansi-terminal >= 0.8 && < 0.9
 - containers >= 0.5 && < 0.6
 - haskell-lsp >= 0.2 && < 0.3
+- refinery >= 0.1 && < 0.2
 
 default-extensions:
 - TupleSections

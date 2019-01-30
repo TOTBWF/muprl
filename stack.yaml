@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-12.2
+resolver: lts-12.14
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -37,14 +37,14 @@ resolver: lts-12.2
 # will not be run. This is useful for tweaking upstream packages.
 packages:
   - location: .
-  - location:
-      git: git@github.com:TOTBWF/unbound-generics.git
-      commit: 065913149bff1a031b3b1ca598ea3e97ec03dacc
-    extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
-# extra-deps: []
+extra-deps:
+  - unbound-generics-0.4.0
+  - git: git@github.com:TOTBWF/refinery.git
+    commit: 3fcba230924d2d2705febd0f6237affc75915155
+ 
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
