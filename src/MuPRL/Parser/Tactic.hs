@@ -3,7 +3,9 @@ module MuPRL.Parser.Tactic where
 
 import Prelude hiding (pi)
 
+import Data.Function ((&))
 import Control.Applicative ((<|>))
+import Control.Monad.Except
 import Data.Functor (($>))
 import qualified Text.Megaparsec as P 
 import qualified Text.Megaparsec.Expr as P
@@ -19,42 +21,45 @@ import MuPRL.Parser.Term (term, variable)
 
 import MuPRL.Core.Term
 
-import MuPRL.Refine.ProofState
+import Refinery.Tactic ((<@>), (<!>))
+import qualified Refinery.Tactic as T
+
+import MuPRL.Core.Unbound.MonadName
 import MuPRL.Refine.Judgement
-import MuPRL.Refine.Rule (MonadRule, Rule, mkRule)
-import MuPRL.Refine.Tactic (Tactic)
+import MuPRL.Refine.Rule (TacticT, RuleError)
 import qualified MuPRL.Refine.Rule as R
-import qualified MuPRL.Refine.Tactic as R
+import qualified MuPRL.Refine.Tactic as T
 
-singletac' :: (MonadRule m) => Parser (Tactic m Judgement)
-singletac' = P.choice
-    [ reserved "id" $> R.idt
-    , R.try <$> (reserved "try" *> singletac)
-    , reserved "fail" $> R.fail "fail tactic invoked"
-    , reserved "intro" $> R.intro
-    , reserved "eqType" $> R.eqType
-    , R.elim <$> (reserved "elim" *> identifier)
-    , R.rule <$> (reserved "rule" *> ruleName)
-    , braces singletac
+rule :: (MonadError RuleError m, MonadName m) => Parser (TacticT m ())
+rule = P.choice
+    [ reserved "id" $> (pure ())
+    , T.try <$> (reserved "try" *> tactic)
+    -- , reserved "fail" $> R.fail "fail tactic invoked"
+    , reserved "intro" $> T.intro
+    , reserved "eqtype" $> T.eqtype
+    , reserved "assumption" $> T.assumption
+    , T.elim <$> (reserved "elim" *> identifier)
+    , T.named <$> (reserved "rule" *> ruleName)
+    , braces tactic
     ]
 
-multitactic :: (MonadRule m) => Parser (Tactic m (ProofState Judgement))
-multitactic = P.choice
-    [ R.each <$> brackets (P.sepBy tactic comma)
-    , R.all_ <$> singletac
+multiTactic :: (MonadError RuleError m, MonadName m) => Parser (TacticT m () -> TacticT m ())
+multiTactic = P.choice
+    [ flip (<@>) <$> brackets (P.sepBy tactic comma)
+    , flip (>>) <$> tactic
     ]
 
-operators :: (MonadRule m) => [[P.Operator Parser (Tactic m Judgement)]]
+operators :: (MonadError RuleError m, MonadName m) => [[P.Operator Parser (TacticT m ())]]
 operators =
-    [ [ P.Prefix (symbol "*" $> R.many)]
-    , [ P.InfixR (symbol "|" $> R.orElse)]
+    [ [ P.Prefix (symbol "*" $> T.many_) ]
+    , [ P.InfixR (symbol "|" $> (<!>)) ]
     ]
 
-singletac :: (MonadRule m) => Parser (Tactic m Judgement)
-singletac = P.makeExprParser singletac' operators
+singleTactic :: (MonadError RuleError m, MonadName m) => Parser (TacticT m ())
+singleTactic = P.makeExprParser rule operators
 
-tactic :: (MonadRule m) => Parser (Tactic m Judgement)
+tactic :: (MonadError RuleError m, MonadName m) => Parser (TacticT m ())
 tactic = do
-    t <- singletac
-    ts <- P.many ((symbol ";") *> multitactic)
-    return $ foldl' R.seq_ t ts
+  t <- singleTactic
+  ts <- P.many (symbol ";" *> multiTactic)
+  return $ foldl (&) t ts

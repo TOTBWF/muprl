@@ -2,18 +2,7 @@ module MuPRL.Core.Telescope where
 
 import Prelude hiding (foldr, foldl, map, concat, traverse)
 
-import qualified Prelude as P
-
-import Control.Monad.Reader
-
-import Data.Text (Text)
-import qualified Data.Text as T
-
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-
 import Unbound.Generics.LocallyNameless
-import Unbound.Generics.LocallyNameless.Fresh
 
 import GHC.Generics
 import Data.Typeable (Typeable)
@@ -118,10 +107,3 @@ toList = foldlWithKey (\xs x xt -> (x,xt):xs) []
 
 unzip :: (Typeable a, Typeable b, Typeable v, Alpha a, Alpha b, Alpha v) => Telescope v (a,b) -> (Telescope v a, Telescope v b)
 unzip = foldrWithKey (\x (a, b) (ta, tb) -> (extend x a ta, extend x b tb)) (empty, empty)
-
--- {-# WARNING withTelescope "This may not be correct, use with caution" #-}
--- withTelescope :: (Subst Term t) => Telescope Term -> t -> t
--- withTelescope Empty t = t
--- withTelescope (SnocHyp (unrebind -> (tl, (x, unembed -> xt)))) t = 
---     let t' = withTelescope tl t
---     in subst x xt t'

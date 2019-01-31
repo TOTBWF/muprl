@@ -43,16 +43,9 @@ instance Pretty Extract where
 instance PrettyM Extract where
     prettyM = prettyM . unExtract
 
-instance PrettyM MetaSubst where
-    prettyM (MetaSubst ms) = 
-        let pp (x,t) = do
-                pt <- prettyM t
-                return $ pt <> pretty "/" <> pretty x
-        in (brackets . hsep . punctuate comma) <$> traverse pp ms
-
 instance PrettyM Term where
     prettyM (Var x) = return $ pretty x
-    prettyM (Hole ms h) = (<>) <$> prettyM ms <*> (pure $ pretty h)
+    prettyM (Hole h) = pure $ pretty h
     prettyM Void = return $ pretty "void"
     prettyM Axiom = return $ pretty "axiom"
     prettyM (Universe k) = return $ pretty "universe" <+> pretty k

@@ -18,15 +18,15 @@ import MuPRL.Parser.Tactic
 
 import MuPRL.Core.Term
 
-import MuPRL.Refine.Rule (MonadRule, Rule, mkRule)
-import MuPRL.Refine.Tactic (Tactic)
+import MuPRL.Refine.Rule
+-- import MuPRL.Refine.Tactic (Tactic)
 import qualified MuPRL.Refine.Rule as R
 import qualified MuPRL.Refine.Tactic as R
 
 import MuPRL.Vernacular.Syntax
 
-theorem :: (MonadRule m) => Parser (Vernacular m)
+theorem :: (Monad m) => Parser (Vernacular m)
 theorem = reserved "Theorem" *> (Theorem <$> identifier <*> (colon *> term) <*> braces tactic)
 
-vernacular :: (MonadRule m) => Parser [Vernacular m]
+vernacular :: (Monad m) => Parser [Vernacular m]
 vernacular = sc *> P.many theorem

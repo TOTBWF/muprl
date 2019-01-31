@@ -19,7 +19,6 @@ import MuPRL.Parser.Stack
 import MuPRL.Core.Term
 
 import MuPRL.Refine.Rule
-import MuPRL.Refine.ProofState
 
 variable :: Parser Var
 variable = (string2Name . T.unpack) <$> identifier

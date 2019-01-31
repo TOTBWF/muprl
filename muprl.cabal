@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9c62fd3fffff923bda0ba5f738cc6b722ac372a8cd0446c555e187a451de6ec2
+-- hash: daba43ab53ed4344b27c93728c62fd1f9ccb286c910dd7f8b933af50ecb3542b
 
 name:           muprl
 version:        0.1.0.0
@@ -39,7 +39,6 @@ library
       MuPRL.Parser.Vernacular
       MuPRL.PrettyPrint
       MuPRL.Refine.Judgement
-      MuPRL.Refine.ProofState
       MuPRL.Refine.Rule
       MuPRL.Refine.Rules.Equality
       MuPRL.Refine.Rules.Function

@@ -1,30 +1,43 @@
+-- |
+-- Module      :  MuPRL.Refine.Rule
+-- Copyright   :  (c) Reed Mullanix 2019
+-- License     :  BSD-style
+-- Maintainer  :  reedmullanix@gmail.com
+--
 {-# LANGUAGE ConstraintKinds #-}
-module MuPRL.Refine.Rule where
+module MuPRL.Refine.Rule
+  ( TacticT
+  , RuleT
+  , MonadRule
+  , subgoal
+  , rule
+  , RuleError(..)
+  , ruleMismatch
+  , wellFormed
+  ) where
 
 import Control.Monad.Except
 
 import Data.Text (Text)
 
+import Refinery.Tactic (subgoal)
+import qualified Refinery.Tactic as T
+
 import MuPRL.Error
 import MuPRL.PrettyPrint
 import MuPRL.Core.Term
-import MuPRL.Core.Unbound
 import MuPRL.Core.Unbound.MonadName
-import MuPRL.Refine.ProofState
+import MuPRL.Core.Telescope
 import MuPRL.Refine.Judgement
-import qualified MuPRL.Core.Telescope as Tl
-import MuPRL.Core.Telescope (Telescope, (@>))
 
-import Debug.Trace
+type TacticT m = T.TacticT Judgement Term m
+type RuleT m = T.RuleT Judgement Term m
+type MonadRule m = T.MonadRule Judgement Term m
 
-type MonadRule m = (MonadName m)
+rule :: (MonadName m) => (Telescope Term Term -> Term -> RuleT m Term) -> TacticT m ()
+rule r = T.rule $ \j -> lunbind j (uncurry r)
 
-newtype Rule m a = Rule { unRule :: a -> ExceptT RuleError m (ProofState a) }
-
-runRule :: a -> Rule m a -> m (Either RuleError (ProofState a))
-runRule a (Rule r) = runExceptT $ r a
-
-data RuleError 
+data RuleError
     = UniverseMismatch Int Int
     | TypeMismatch Term Term
     | NotInContext Term
@@ -45,50 +58,19 @@ instance Error RuleError where
     errorText (NoSuchRule t) = pretty "No Such Rule:" <+> pretty t
 
 
--- search :: Term -> Telescope Term Term -> Maybe (Var, Term)
--- search t tl = Tl.find (aeq t) tl
-
--- | Given a judgement, create a goal/hole pair
-goal :: (MonadRule m) => Judgement -> m ((MetaVar, Judgement), Term)
-goal j = do
-    x <- metavar wildcard
-    return ((x, j), hole x)
+ruleMismatch :: (MonadError RuleError m) => Text -> Judgement -> m a
+ruleMismatch t jdg = throwError $ RuleMismatch t jdg
 
 -- | Infers the universe level of a given term
-inferUniverse :: (MonadRule m) => Term -> m Int
+inferUniverse :: (MonadName m) => Term -> m Int
 inferUniverse (Universe k) = return $ k + 1
 inferUniverse (Pi bnd) = lunbind bnd $ \(_, a, b) -> max <$> inferUniverse a <*> inferUniverse b
 inferUniverse (Equals _ _ a) = inferUniverse a
 inferUniverse _ = return 0
 
 -- | Create a well-formedness goal
-wellFormed :: (MonadRule m) => Telescope Term Term -> Term -> m ((MetaVar, Judgement), Term)
-wellFormed s t = do
-    k <- inferUniverse t
-    goal (s |- Equals t t (Universe k))
-
-
-ruleMismatch :: (MonadRule m, MonadError RuleError m) => Text -> Judgement -> m a
-ruleMismatch t jdg = throwError $ RuleMismatch t jdg
-    -- (_, goal) <- unbind bnd
-    -- throwError $ RuleMismatch t goal
-
-mkRule :: (MonadRule m) => (Telescope Term Term -> Term -> ExceptT RuleError m (ProofState Judgement)) -> Rule m Judgement
-mkRule f = Rule $ \j -> lunbind j $ \(hyps, g) -> f hyps g
-    -- trace (show bnd) $ trace (show hyps) $ f hyps goal
-
-ruleError :: (MonadRule m) => RuleError -> Rule m Judgement
-ruleError err = mkRule $ \_ _ -> throwError err
-
-assumption :: (MonadRule m) => Rule m Judgement
-assumption = mkRule $ \hyp goal -> 
-        case (Tl.find (aeq goal) hyp) of
-            Just (x,_) -> return (Tl.empty |>> Var x)
-            Nothing -> throwError $ NotInContext goal
-
--- | Prove a proposition by providing evidence
--- evidence :: (MonadRule m) => Term -> Rule m Judgement
--- evidence t = mkRule $ \hyp g -> do
---     let t' = Tl.withTelescope hyp t
---     (g', _) <- goal (hyp |- (Equals t' t' g))
---     return ((Tl.empty @> g') |> t')
+wellFormed :: (MonadRule m, MonadName m) => Judgement -> m ()
+wellFormed j = lunbind j $ \(hy, goal) -> do
+    k <- inferUniverse goal
+    _ <- subgoal (hy |- Equals goal goal (Universe k))
+    return ()

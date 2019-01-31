@@ -1,4 +1,6 @@
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 module MuPRL.Core.Unbound.MonadName 
     ( MonadName(..)
@@ -13,6 +15,9 @@ import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.Reader
 
+import Refinery.Tactic (MonadExtract(..))
+import Refinery.Tactic.Internal (TacticT, mapTacticT, RuleT, mapRuleT)
+
 import Unbound.Generics.LocallyNameless (LFreshMT, FreshMT, LFresh, Fresh, Bind, Embed, Alpha, Subst)
 import qualified Unbound.Generics.LocallyNameless as Unbound
 import qualified Unbound.Generics.LocallyNameless.Fresh as Unbound
@@ -23,8 +28,12 @@ import MuPRL.Core.Term
 class (Fresh m, LFresh m) => MonadName m where
     -- | Creates a locally fresh variable
     var :: String -> m Var
+    default var :: (MonadTrans t, MonadName m1, t m1 ~ m) => String -> m Var
+    var = lift . var
     -- | Creates a globally fresh metavariable
     metavar :: String -> m MetaVar
+    default metavar :: (MonadTrans t, MonadName m1, t m1 ~ m) => String -> m MetaVar
+    metavar = lift . metavar
 
 newtype NameMT m a = NameMT { unNameMT :: LFreshMT (FreshMT m) a}
     deriving (Functor, Applicative, Monad, MonadIO, Fresh, LFresh, MonadError e)
@@ -36,6 +45,22 @@ instance MonadTrans NameMT where
 
 instance (Fresh m) => Fresh (LFreshMT m) where
     fresh = lift . Unbound.fresh
+
+instance (Fresh m) => Fresh (RuleT jdg ext m) where
+  fresh = lift . Unbound.fresh
+
+instance (LFresh m) => LFresh (RuleT jdg ext m) where
+  lfresh = lift . Unbound.lfresh
+  avoid = mapRuleT . Unbound.avoid
+  getAvoids = lift Unbound.getAvoids
+
+instance (Fresh m) => Fresh (TacticT jdg ext m) where
+  fresh = lift. Unbound.fresh
+
+instance (LFresh m) => LFresh (TacticT jdg ext m) where
+  lfresh = lift . Unbound.lfresh
+  avoid = mapTacticT . Unbound.avoid
+  getAvoids = lift Unbound.getAvoids
 
 instance (Monad m) => MonadName (NameMT m) where
     var = NameMT . Unbound.lfresh . Unbound.s2n
@@ -62,11 +87,12 @@ instance LocalBind (Bind (Var, Embed Term) Term) (Var, Term, Term) where
 class GlobalBind b u | b -> u where
     unbind :: (MonadName m) => b -> m u
 
-{- MTL Boilerplate -}
-instance (MonadName m) => MonadName (ExceptT e m) where
-    var = lift . var
-    metavar = lift . metavar
 
-instance (MonadName m) => MonadName (ReaderT r m) where
-    var = lift . var
-    metavar = lift . metavar
+instance (Monad m) => MonadExtract Term (NameMT m) where
+  hole = Hole <$> metavar wildcard
+
+{- MTL Boilerplate -}
+instance (MonadName m) => MonadName (ExceptT e m)
+instance (MonadName m) => MonadName (ReaderT r m)
+instance (MonadName m) => MonadName (RuleT jdg ext m)
+instance (MonadName m) => MonadName (TacticT jdg ext m)

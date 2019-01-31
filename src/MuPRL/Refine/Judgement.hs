@@ -23,7 +23,6 @@ newtype Judgement = Judgement (Bind (Telescope Term Term) Term)
 instance Alpha Judgement
 
 instance Subst Term Judgement
-instance Subst Extract Judgement
 
 instance LocalBind Judgement (Telescope Term Term, Term) where
     lunbind (Judgement bnd) = Unbound.lunbind bnd

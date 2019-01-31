@@ -18,7 +18,6 @@ import MuPRL.Error
 import MuPRL.PrettyPrint
 import qualified MuPRL.Core.Telescope as Tl
 import MuPRL.Core.Unbound.MonadName (runNameMT)
-import MuPRL.Refine.ProofState
 import MuPRL.Refine.Judgement
 import MuPRL.Refine.Tactic
 import MuPRL.Vernacular.Syntax
@@ -47,17 +46,17 @@ main = (\o -> runReplT $ execFile $ file o) =<< execParser opts
 -- main = runReplT loop
 -- main = runReplT $ execFile "samples/id.mprl"
 
-loop :: Repl ()
-loop = do
-    input <- getInputLine "μPRL> "
-    case input of
-        Just i -> case runParser term i of
-            Left err -> printError err >> loop
-            Right t -> do
-                extract <- runRefine $ refine (Tl.empty |- t)
-                outputStr "Extract: " >> displayLn extract
-                loop
-        Nothing -> outputStrLn "Goodbye"
+-- loop :: Repl ()
+-- loop = do
+--     input <- getInputLine "μPRL> "
+--     case input of
+--         Just i -> case runParser term i of
+--             Left err -> printError err >> loop
+--             Right t -> do
+--                 extract <- runRefine $ refine (Tl.empty |- t)
+--                 outputStr "Extract: " >> displayLn extract
+--                 loop
+--         Nothing -> outputStrLn "Goodbye"
 
 execFile :: FilePath -> Repl ()
 execFile f = do

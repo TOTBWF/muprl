@@ -43,7 +43,7 @@ packages:
 extra-deps:
   - unbound-generics-0.4.0
   - git: git@github.com:TOTBWF/refinery.git
-    commit: 3fcba230924d2d2705febd0f6237affc75915155
+    commit: 5425c3ca68057e45f274520ae7b02c8076759024
  
 
 # Override default flag values for local packages and extra-deps
